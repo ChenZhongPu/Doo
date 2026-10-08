@@ -558,8 +558,8 @@
                 onchange={saveToStorage}
                 disabled={isRunning}
               >
-                <option value="user">{$t('userRole')}</option>
-                <option value="assistant">{$t('assistantRole')}</option>
+                <option value="user">user</option>
+                <option value="assistant">assistant</option>
               </select>
 
               <div class="row-actions">
