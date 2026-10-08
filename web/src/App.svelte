@@ -61,7 +61,6 @@
           </span>
         {/if}
       </div>
-      <span class="brand-tagline">{$t('appTagline')}</span>
     </div>
 
     <nav class="nav-center">
@@ -216,17 +215,6 @@
     font-family: monospace;
     border-left: 1px solid var(--border-color);
     padding-left: 0.35rem;
-  }
-  .brand-tagline {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-left: 0.5rem;
-    display: none;
-  }
-  @media (min-width: 860px) {
-    .brand-tagline {
-      display: inline;
-    }
   }
 
   .brand-logo-img {
