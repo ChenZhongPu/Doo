@@ -30,6 +30,55 @@ var (
 	gitCommit = ""
 )
 
+const sharkArt = `                     /|
+                    / |                      /|
+                   /  |                     / |
+     _..----------'   '---..._______       /  |
+   .-'                              '-._  /  /
+ .'    o       ) ) )                    '/  /
+|              ) ) )                       <
+ '.  \/\/\/\/\/) ) )                     \  \
+   '-.                             _..--''\  \
+      '--..____________________..-'        \__\
+                  \ \
+                   \_\`
+
+func printBanner(listenAddr string, maxTargets int, dataDir string) {
+	cyan := "\033[36m"
+	bold := "\033[1m"
+	green := "\033[32m"
+	gray := "\033[90m"
+	reset := "\033[0m"
+
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+		cyan, bold, green, gray, reset = "", "", "", "", ""
+	}
+
+	targetsInfo := fmt.Sprintf("%d", maxTargets)
+	if maxTargets <= 0 {
+		targetsInfo = "unlimited"
+	}
+
+	commitInfo := gitCommit
+	if commitInfo == "" {
+		commitInfo = "dev"
+	}
+
+	fmt.Printf("\n%s%s%s\n\n", cyan, sharkArt, reset)
+	fmt.Printf("  %s%sDoo - Multi-LLM Playground%s\n", bold, cyan, reset)
+	fmt.Printf("  %sVersion:%s     %s %s(commit: %s, built: %s)%s\n", gray, reset, version, gray, commitInfo, buildTime, reset)
+	if listenAddr != "" {
+		fmt.Printf("  %sServer URL:%s  %s%shttp://%s%s\n", gray, reset, bold, green, listenAddr, reset)
+	}
+	if maxTargets >= 0 {
+		fmt.Printf("  %sMax Models:%s  %s\n", gray, reset, targetsInfo)
+	}
+	if dataDir != "" {
+		fmt.Printf("  %sData Dir:%s    %s\n", gray, reset, dataDir)
+	}
+	fmt.Println()
+}
+
 func main() {
 	var (
 		hostFlag       = flag.String("host", "localhost", "HTTP server listen host")
@@ -37,13 +86,13 @@ func main() {
 		addrFlag       = flag.String("addr", "", "HTTP server listen address [host:port] (overrides -host and -port if set)")
 		maxTargetsFlag = flag.Int("max-targets", 8, "Maximum number of models to compare concurrently (0 for unlimited)")
 		dataFlag       = flag.String("data", "~/.doo", "Data directory path for database and keys")
-		openFlag       = flag.Bool("open", false, "Open browser after server starts")
+		openFlag       = flag.Bool("open", true, "Open browser after server starts (default true, use -open=false to disable)")
 		versionFlag    = flag.Bool("version", false, "Print version and exit")
 	)
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Printf("Doo %s (commit %s, built %s)\n", version, gitCommit, buildTime)
+		printBanner("", *maxTargetsFlag, "")
 		os.Exit(0)
 	}
 
@@ -115,8 +164,9 @@ func main() {
 		Handler: api.SecurityMiddleware(secCfg, topMux),
 	}
 
+	printBanner(listenAddr, *maxTargetsFlag, dataDir)
+
 	go func() {
-		log.Printf("Doo server listening on http://%s (max-targets: %d)", listenAddr, *maxTargetsFlag)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("HTTP server failed: %v", err)
 		}
@@ -124,8 +174,14 @@ func main() {
 
 	if *openFlag {
 		go func() {
-			time.Sleep(100 * time.Millisecond)
-			openBrowser(fmt.Sprintf("http://%s", listenAddr))
+			time.Sleep(150 * time.Millisecond)
+			browserURL := fmt.Sprintf("http://%s", listenAddr)
+			if h, p, err := net.SplitHostPort(listenAddr); err == nil {
+				if h == "" || h == "0.0.0.0" || h == "::" {
+					browserURL = fmt.Sprintf("http://localhost:%s", p)
+				}
+			}
+			openBrowser(browserURL)
 		}()
 	}
 
