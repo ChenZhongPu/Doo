@@ -240,7 +240,6 @@
                         class="card-title-group"
                         data-tooltip={getCallTooltip(call)}
                         data-tooltip-pos="bottom"
-                        title={getCallTooltip(call)}
                       >
                         <div class="card-title-row">
                           {#if snap.provider}

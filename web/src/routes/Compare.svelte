@@ -485,9 +485,6 @@
             ? $t('maxTargetsTooltip').replace('{max}', String(maxTargets))
             : $t('unlimitedTargetsTooltip')}
           data-tooltip-pos="bottom"
-          title={maxTargets > 0
-            ? $t('maxTargetsTooltip').replace('{max}', String(maxTargets))
-            : $t('unlimitedTargetsTooltip')}
         >({checkedTargetIds.length}{maxTargets > 0 ? `/${maxTargets}` : ''})</span>
       </h3>
       <a href="#/config" class="link-config">{$t('goToConfig')} →</a>
@@ -515,7 +512,6 @@
                     class:checked={checkedTargetIds.includes(tgt.id)}
                     data-tooltip={getModelTooltip(prov.name, tgt.model_name)}
                     data-tooltip-pos="bottom"
-                    title={getModelTooltip(prov.name, tgt.model_name)}
                   >
                     <input
                       type="checkbox"
@@ -694,7 +690,6 @@
                 class="card-title-group"
                 data-tooltip={getModelTooltip(prov?.name, tgt.model_name)}
                 data-tooltip-pos="bottom"
-                title={getModelTooltip(prov?.name, tgt.model_name)}
               >
                 <div class="card-title-row">
                   {#if prov}
