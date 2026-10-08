@@ -61,6 +61,8 @@ export const translations = {
     noModelsSelected: 'Please select at least one model to run.',
     selectUpTo8: 'You can select up to 8 models at once.',
     selectUpToN: 'You can select up to {n} models at once.',
+    maxTargetsTooltip: 'Up to {max} models can be compared concurrently (configurable via startup flag -max-targets)',
+    unlimitedTargetsTooltip: 'No limit on concurrent models (configurable via startup flag -max-targets)',
 
     // Card Tabs & Badges
     tabOutput: 'Output',
@@ -204,6 +206,8 @@ export const translations = {
     noModelsSelected: '请至少勾选一个模型。',
     selectUpTo8: '最多可同时选择 8 个模型。',
     selectUpToN: '最多可同时选择 {n} 个模型。',
+    maxTargetsTooltip: '最多支持并发对比 {max} 个模型（可通过启动参数 -max-targets 调整）',
+    unlimitedTargetsTooltip: '未限制并发对比模型数（可通过启动参数 -max-targets 调整）',
 
     // 卡片 Tabs & 徽标
     tabOutput: '输出',

@@ -477,7 +477,19 @@
   <!-- Left Sidebar: Models list grouped by provider -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h3>{$t('selectModels')} ({checkedTargetIds.length}{maxTargets > 0 ? `/${maxTargets}` : ''})</h3>
+      <h3>
+        {$t('selectModels')}
+        <span
+          class="models-count-badge"
+          data-tooltip={maxTargets > 0
+            ? $t('maxTargetsTooltip').replace('{max}', String(maxTargets))
+            : $t('unlimitedTargetsTooltip')}
+          data-tooltip-pos="bottom"
+          title={maxTargets > 0
+            ? $t('maxTargetsTooltip').replace('{max}', String(maxTargets))
+            : $t('unlimitedTargetsTooltip')}
+        >({checkedTargetIds.length}{maxTargets > 0 ? `/${maxTargets}` : ''})</span>
+      </h3>
       <a href="#/config" class="link-config">{$t('goToConfig')} →</a>
     </div>
 
@@ -955,6 +967,24 @@
     font-weight: 600;
     white-space: nowrap;
     margin: 0;
+    display: inline-flex;
+    align-items: center;
+  }
+  .models-count-badge {
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 1px dotted var(--text-muted);
+    margin-left: 0.35rem;
+    line-height: 1.2;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .models-count-badge:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
   .link-config {
     font-size: 0.8rem;
