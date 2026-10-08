@@ -78,8 +78,8 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "target_ids cannot be empty")
 		return
 	}
-	if len(req.TargetIDs) > 8 {
-		writeError(w, http.StatusBadRequest, "target_ids cannot exceed 8")
+	if s.MaxTargets > 0 && len(req.TargetIDs) > s.MaxTargets {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("target_ids cannot exceed %d", s.MaxTargets))
 		return
 	}
 

@@ -32,16 +32,24 @@ var (
 
 func main() {
 	var (
-		addrFlag    = flag.String("addr", "127.0.0.1:8787", "HTTP server listen address")
-		dataFlag    = flag.String("data", "~/.doo", "Data directory path for database and keys")
-		openFlag    = flag.Bool("open", false, "Open browser after server starts")
-		versionFlag = flag.Bool("version", false, "Print version and exit")
+		hostFlag       = flag.String("host", "localhost", "HTTP server listen host")
+		portFlag       = flag.Int("port", 8787, "HTTP server listen port")
+		addrFlag       = flag.String("addr", "", "HTTP server listen address [host:port] (overrides -host and -port if set)")
+		maxTargetsFlag = flag.Int("max-targets", 8, "Maximum number of models to compare concurrently (0 for unlimited)")
+		dataFlag       = flag.String("data", "~/.doo", "Data directory path for database and keys")
+		openFlag       = flag.Bool("open", false, "Open browser after server starts")
+		versionFlag    = flag.Bool("version", false, "Print version and exit")
 	)
 	flag.Parse()
 
 	if *versionFlag {
 		fmt.Printf("Doo %s (commit %s, built %s)\n", version, gitCommit, buildTime)
 		os.Exit(0)
+	}
+
+	listenAddr := *addrFlag
+	if listenAddr == "" {
+		listenAddr = fmt.Sprintf("%s:%d", *hostFlag, *portFlag)
 	}
 
 	dataDir := expandPath(*dataFlag)
@@ -62,10 +70,10 @@ func main() {
 	}
 	defer st.Close()
 
-	warnIfNotLoopback(*addrFlag)
+	warnIfNotLoopback(listenAddr)
 
-	secCfg := api.SecurityConfig{BindAddr: *addrFlag}
-	apiServer := api.NewServer(st, keyStore, version, buildTime, gitCommit, secCfg)
+	secCfg := api.SecurityConfig{BindAddr: listenAddr}
+	apiServer := api.NewServer(st, keyStore, version, buildTime, gitCommit, secCfg, *maxTargetsFlag)
 
 	distFS, err := fs.Sub(web.Dist, "dist")
 	if err != nil {
@@ -103,12 +111,12 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:    *addrFlag,
+		Addr:    listenAddr,
 		Handler: api.SecurityMiddleware(secCfg, topMux),
 	}
 
 	go func() {
-		log.Printf("Doo server listening on http://%s", *addrFlag)
+		log.Printf("Doo server listening on http://%s (max-targets: %d)", listenAddr, *maxTargetsFlag)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("HTTP server failed: %v", err)
 		}
@@ -117,7 +125,7 @@ func main() {
 	if *openFlag {
 		go func() {
 			time.Sleep(100 * time.Millisecond)
-			openBrowser(fmt.Sprintf("http://%s", *addrFlag))
+			openBrowser(fmt.Sprintf("http://%s", listenAddr))
 		}()
 	}
 

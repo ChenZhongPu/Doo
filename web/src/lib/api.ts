@@ -27,7 +27,7 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   // Health
-  getHealth: () => fetchJSON<{ ok: boolean; version: string; build_time?: string; git_commit?: string }>('/api/health'),
+  getHealth: () => fetchJSON<{ ok: boolean; version: string; build_time?: string; git_commit?: string; max_targets?: number }>('/api/health'),
 
   // Providers
   listProviders: async () => (await fetchJSON<Provider[]>('/api/providers')) || [],

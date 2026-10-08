@@ -28,7 +28,7 @@ func setupTestServer(t *testing.T) (*Server, *store.Store, *secrets.KeyStore) {
 		t.Fatalf("failed to create keystore: %v", err)
 	}
 
-	srv := NewServer(st, ks, "1.0.0-test", "2026-10-08", "testcommit", SecurityConfig{BindAddr: "127.0.0.1:8787"})
+	srv := NewServer(st, ks, "1.0.0-test", "2026-10-08", "testcommit", SecurityConfig{BindAddr: "127.0.0.1:8787"}, 8)
 	return srv, st, ks
 }
 

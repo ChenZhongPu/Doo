@@ -18,6 +18,7 @@ type Server struct {
 	BuildTime  string
 	GitCommit  string
 	Security   SecurityConfig
+	MaxTargets int
 	Clock      adapter.Clock
 	HTTPClient *http.Client
 
@@ -25,15 +26,19 @@ type Server struct {
 	cancelMap  map[int64]context.CancelFunc
 }
 
-func NewServer(s *store.Store, ks *secrets.KeyStore, version, buildTime, gitCommit string, sec SecurityConfig) *Server {
+func NewServer(s *store.Store, ks *secrets.KeyStore, version, buildTime, gitCommit string, sec SecurityConfig, maxTargets int) *Server {
+	if maxTargets < 0 {
+		maxTargets = 0
+	}
 	return &Server{
-		Store:     s,
-		KeyStore:  ks,
-		Version:   version,
-		BuildTime: buildTime,
-		GitCommit: gitCommit,
-		Security:  sec,
-		cancelMap: make(map[int64]context.CancelFunc),
+		Store:      s,
+		KeyStore:   ks,
+		Version:    version,
+		BuildTime:  buildTime,
+		GitCommit:  gitCommit,
+		Security:   sec,
+		MaxTargets: maxTargets,
+		cancelMap:  make(map[int64]context.CancelFunc),
 	}
 }
 
@@ -109,9 +114,10 @@ func writeError(w http.ResponseWriter, status int, message string) {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":         true,
-		"version":    s.Version,
-		"build_time": s.BuildTime,
-		"git_commit": s.GitCommit,
+		"ok":          true,
+		"version":     s.Version,
+		"build_time":  s.BuildTime,
+		"git_commit":  s.GitCommit,
+		"max_targets": s.MaxTargets,
 	})
 }

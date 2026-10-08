@@ -60,6 +60,7 @@ export const translations = {
     notePlaceholder: 'Optional note for this run...',
     noModelsSelected: 'Please select at least one model to run.',
     selectUpTo8: 'You can select up to 8 models at once.',
+    selectUpToN: 'You can select up to {n} models at once.',
 
     // Card Tabs & Badges
     tabOutput: 'Output',
@@ -202,6 +203,7 @@ export const translations = {
     notePlaceholder: '本轮测试备注(可选)...',
     noModelsSelected: '请至少勾选一个模型。',
     selectUpTo8: '最多可同时选择 8 个模型。',
+    selectUpToN: '最多可同时选择 {n} 个模型。',
 
     // 卡片 Tabs & 徽标
     tabOutput: '输出',

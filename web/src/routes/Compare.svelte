@@ -68,12 +68,22 @@
   let animFrameId: number | null = null;
   let pendingDeltas: { callId: number; kind: 'content' | 'reasoning'; text: string }[] = [];
 
+  let maxTargets: number = $state(8);
+
   const STORAGE_TARGETS = 'doo_selected_targets';
   const STORAGE_INPUTS = 'doo_saved_inputs';
 
   onMount(async () => {
     await loadConfig();
     restoreFromStorage();
+    try {
+      const h = await api.getHealth();
+      if (typeof h.max_targets === 'number') {
+        maxTargets = h.max_targets;
+      }
+    } catch {
+      // Keep default
+    }
 
     // Listen for custom event from History page
     window.addEventListener('doo-load-run', handleLoadRun as EventListener);
@@ -187,8 +197,8 @@
     if (checkedTargetIds.includes(id)) {
       checkedTargetIds = checkedTargetIds.filter(x => x !== id);
     } else {
-      if (checkedTargetIds.length >= 8) {
-        alert($t('selectUpTo8'));
+      if (maxTargets > 0 && checkedTargetIds.length >= maxTargets) {
+        alert($t('selectUpToN').replace('{n}', String(maxTargets)));
         return;
       }
       checkedTargetIds = [...checkedTargetIds, id];
@@ -225,6 +235,10 @@
   async function handleSend() {
     if (checkedTargetIds.length === 0) {
       alert($t('noTargetsSelected'));
+      return;
+    }
+    if (maxTargets > 0 && checkedTargetIds.length > maxTargets) {
+      alert($t('selectUpToN').replace('{n}', String(maxTargets)));
       return;
     }
 
@@ -463,7 +477,7 @@
   <!-- Left Sidebar: Models list grouped by provider -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h3>{$t('selectModels')} ({checkedTargetIds.length}/8)</h3>
+      <h3>{$t('selectModels')} ({checkedTargetIds.length}{maxTargets > 0 ? `/${maxTargets}` : ''})</h3>
       <a href="#/config" class="link-config">{$t('goToConfig')} →</a>
     </div>
 
