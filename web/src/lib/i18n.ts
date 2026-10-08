@@ -16,7 +16,12 @@ function getInitialLanguage(): Language {
   return 'en'; // Default English
 }
 
-export const currentLanguage = writable<Language>(getInitialLanguage());
+const initialLang = getInitialLanguage();
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLang;
+}
+
+export const currentLanguage = writable<Language>(initialLang);
 
 export function setLanguage(lang: Language) {
   currentLanguage.set(lang);
@@ -24,6 +29,9 @@ export function setLanguage(lang: Language) {
     localStorage.setItem(STORAGE_KEY, lang);
   } catch (e) {
     // Ignore
+  }
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lang;
   }
 }
 

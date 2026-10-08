@@ -35,7 +35,28 @@
     const nextLang: Language = $currentLanguage === 'en' ? 'zh' : 'en';
     setLanguage(nextLang);
   }
+
+  let tabTitle = $derived.by(() => {
+    let pageName = $t('navCompare');
+    if (currentRoute === 'history') {
+      pageName = $t('navHistory');
+    } else if (currentRoute === 'config') {
+      pageName = $t('navConfig');
+    }
+    return `Doo - ${pageName}`;
+  });
+
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = tabTitle;
+      document.documentElement.lang = $currentLanguage;
+    }
+  });
 </script>
+
+<svelte:head>
+  <title>{tabTitle}</title>
+</svelte:head>
 
 <div class="app-layout">
   <!-- Top Navigation Bar -->
