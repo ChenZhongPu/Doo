@@ -1,6 +1,7 @@
 # Binaries and build outputs
 /bin/
 /dist/
+/build_out/
 
 # Dependencies
 web/node_modules/
