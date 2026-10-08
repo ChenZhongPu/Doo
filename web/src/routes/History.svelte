@@ -385,54 +385,62 @@
   .history-header h2 {
     font-size: 1.25rem;
     font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--text-main);
   }
 
   .run-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.85rem;
   }
 
   .run-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    transition: border-color 0.15s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
   }
   .run-card.expanded {
-    border-color: var(--color-primary);
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   }
 
   .run-summary-bar {
     display: grid;
-    grid-template-columns: 180px 1fr auto auto;
+    grid-template-columns: 190px 1fr auto auto;
     align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1.2rem;
+    gap: 1.2rem;
+    padding: 0.95rem 1.35rem;
     cursor: pointer;
     background: var(--bg-card);
+    transition: background-color 0.15s ease;
   }
   .run-summary-bar:hover {
-    background: var(--bg-hover);
+    background: rgba(255, 255, 255, 0.025);
   }
 
   .run-meta {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
   }
   .run-time {
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 500;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-secondary);
   }
   .run-note {
     font-size: 0.72rem;
   }
 
   .run-prompt {
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: 0.86rem;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -445,7 +453,19 @@
   }
   .call-pill {
     font-size: 0.72rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+  }
+  .call-pill:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+    color: #ffffff;
   }
 
   .run-actions {
@@ -456,29 +476,30 @@
 
   .expanded-content {
     border-top: 1px solid var(--border-color);
-    padding: 1.2rem;
-    background: var(--bg-item);
+    padding: 1.35rem;
+    background: rgba(0, 0, 0, 0.25);
   }
 
   .results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: 1.25rem;
   }
 
   .result-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1rem;
+    padding: 0.8rem 1rem;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-color);
   }
@@ -486,55 +507,76 @@
     display: inline-flex;
     align-items: center;
     cursor: default;
+    min-width: 0;
   }
   .card-title-row {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.55rem;
+    min-width: 0;
   }
   .card-title {
-    font-size: 0.95rem;
+    margin: 0;
+    font-size: 0.92rem;
     font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .card-tabs {
     display: flex;
     align-items: center;
-    padding: 0.3rem 0.6rem;
+    padding: 0.35rem 0.75rem;
     background: var(--bg-card-tabs);
     border-bottom: 1px solid var(--border-color);
-    gap: 0.3rem;
+    gap: 0.35rem;
   }
   .tab-btn {
-    background: none;
-    border: none;
-    font-size: 0.78rem;
-    padding: 0.3rem 0.6rem;
-    border-radius: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    font-size: 0.76rem;
+    font-weight: 500;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
     cursor: pointer;
     color: var(--text-muted);
+    transition: all 0.15s ease;
+  }
+  .tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
   }
   .tab-btn.active {
-    background: var(--bg-card);
-    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
   .md-toggle {
     margin-left: auto;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.35rem;
     color: var(--text-muted);
     cursor: pointer;
+    user-select: none;
+  }
+  .md-toggle input[type="checkbox"] {
+    accent-color: var(--color-primary);
   }
 
   .card-body {
     flex: 1;
-    padding: 0.85rem;
-    min-height: 180px;
-    max-height: 420px;
+    padding: 1rem 1.1rem;
+    min-height: 200px;
+    max-height: 480px;
     overflow-y: auto;
+    line-height: 1.6;
   }
 
   .pre-output {
@@ -542,48 +584,59 @@
     word-break: break-word;
     font-family: inherit;
     font-size: 0.88rem;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
+    color: var(--text-main);
   }
   .pre-reasoning {
     white-space: pre-wrap;
     word-break: break-word;
     font-family: inherit;
     font-size: 0.82rem;
-    line-height: 1.45;
+    line-height: 1.5;
     color: var(--text-muted);
-    border-left: 2px solid var(--border-color);
-    padding-left: 0.6rem;
+    border-left: 2px solid rgba(99, 102, 241, 0.4);
+    background: rgba(99, 102, 241, 0.02);
+    padding: 0.6rem 0.8rem;
+    border-radius: 0 6px 6px 0;
     margin: 0;
   }
   .pre-raw {
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
     font-size: 0.78rem;
+    line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
+    color: #cbd5e1;
   }
 
   .card-metrics {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-    padding: 0.6rem 0.85rem;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
     background: var(--bg-card-metrics);
     border-top: 1px solid var(--border-color);
   }
   .metric-item {
     display: flex;
     flex-direction: column;
+    gap: 0.15rem;
   }
   .metric-label {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
+    font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   .metric-value {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 600;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   .truncate {
