@@ -61,6 +61,11 @@ func (s *Server) handleCreateTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if payload.Core.Stream == nil {
+		t := true
+		payload.Core.Stream = &t
+	}
+
 	rec := &store.TargetRecord{
 		ProviderID:     payload.ProviderID,
 		Label:          payload.Label,

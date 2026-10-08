@@ -52,6 +52,7 @@
 
   // Execution state
   let isRunning: boolean = $state(false);
+  let runElapsedMs: number = $state(0);
   let abortController: AbortController | null = null;
   let targetStates: Record<number, TargetRunState> = $state({});
   let generalError: string = $state('');
@@ -245,6 +246,8 @@
     generalError = '';
     isRunning = true;
     abortController = new AbortController();
+    const runStartTime = performance.now();
+    runElapsedMs = 0;
 
     // Initialize target states
     const provMap = new Map(providers.map(p => [p.id, p]));
@@ -270,6 +273,9 @@
 
     // Start RAF loop for fluid stream rendering
     function flushPendingDeltas() {
+      if (isRunning) {
+        runElapsedMs = performance.now() - runStartTime;
+      }
       if (pendingDeltas.length > 0) {
         const map = new Map<number, { content: string; reasoning: string }>();
         for (const d of pendingDeltas) {
@@ -281,14 +287,24 @@
         pendingDeltas = [];
 
         // Apply deltas to matching targetStates
+        let modified = false;
         for (const [cId, accumulated] of map.entries()) {
           for (const state of Object.values(targetStates)) {
             if (state.callId === cId) {
-              if (accumulated.content) state.output += accumulated.content;
-              if (accumulated.reasoning) state.reasoning += accumulated.reasoning;
+              if (accumulated.content) {
+                state.output += accumulated.content;
+                modified = true;
+              }
+              if (accumulated.reasoning) {
+                state.reasoning += accumulated.reasoning;
+                modified = true;
+              }
               break;
             }
           }
+        }
+        if (modified) {
+          targetStates = { ...targetStates };
         }
       }
       if (isRunning) {
@@ -348,6 +364,7 @@
       }
     } finally {
       isRunning = false;
+      runElapsedMs = 0;
       if (animFrameId) cancelAnimationFrame(animFrameId);
       // Flush any leftover deltas
       flushPendingDeltas();
@@ -373,9 +390,13 @@
           state.metrics = ev.metrics;
           state.responseModel = ev.response_model;
           state.httpStatus = ev.http_status;
+          if (ev.output && !state.output) {
+            state.output = ev.output;
+          }
           break;
         }
       }
+      targetStates = { ...targetStates };
     } else if (ev.type === 'error') {
       for (const state of Object.values(targetStates)) {
         if (state.callId === ev.call_id) {
@@ -470,6 +491,10 @@
     if (ms == null) return '—';
     if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
     return `${Math.round(ms)}ms`;
+  }
+
+  function formatElapsedSec(ms: number): string {
+    return `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
   }
 </script>
 
@@ -634,7 +659,7 @@
             🔍 {$t('previewBody')}
           </button>
 
-          <label class="timeout-label">
+          <label class="timeout-label" data-tooltip={$t('timeoutTooltip')} data-tooltip-pos="bottom">
             <span>{$t('timeoutSec')}:</span>
             <input
               type="number"
@@ -702,7 +727,7 @@
               <div class="card-header-actions">
                 <span class="badge badge-{state.status}">
                   {#if state.status === 'running'}
-                    {$t('statusRunning')}...
+                    {$t('statusRunning')} ({formatElapsedSec(runElapsedMs)})
                   {:else if state.status === 'done'}
                     {$t('statusDone')}
                   {:else if state.status === 'error'}
@@ -785,12 +810,15 @@
                   <div class="markdown-body">
                     {#if state.output}
                       {@html renderMd(state.output)}
+                      {#if state.status === 'running'}
+                        <span class="streaming-cursor">▊</span>
+                      {/if}
                     {:else if state.status === 'running'}
                       <span class="streaming-indicator">...</span>
                     {/if}
                   </div>
                 {:else}
-                  <pre class="pre-output">{state.output || (state.status === 'running' ? '...' : '')}</pre>
+                  <pre class="pre-output">{state.output}{#if state.status === 'running' && state.output}<span class="streaming-cursor">▊</span>{:else if state.status === 'running'}...{/if}</pre>
                 {/if}
               {:else if state.activeTab === 'reasoning'}
                 <pre class="pre-reasoning">{state.reasoning}</pre>
@@ -1263,6 +1291,19 @@
   .streaming-indicator {
     color: var(--text-muted);
     font-style: italic;
+  }
+
+  .streaming-cursor {
+    display: inline-block;
+    color: var(--color-primary);
+    font-size: 0.85em;
+    animation: blink-cursor 0.9s infinite;
+    margin-left: 2px;
+    vertical-align: baseline;
+  }
+  @keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
   }
 
   .pre-output {

@@ -167,7 +167,7 @@
       protocol: pProtocol,
       base_url: pBaseUrl.trim(),
       headers: parsedHeaders,
-      stream_usage: false,
+      stream_usage: pProtocol === 'openai_chat',
     };
 
     if (pApiKey.trim()) {
@@ -279,7 +279,7 @@
             provider_id: selectedProviderId,
             label: mName,
             model_name: mName,
-            core: {},
+            core: { stream: true },
             extra: {},
             max_tokens_field: resolveMaxTokensField(mName),
           });
@@ -307,7 +307,7 @@
     valTopP = 1.0;
     enableMaxTokens = false;
     valMaxTokens = 4096;
-    enableStream = false;
+    enableStream = true;
     valStream = true;
     showTargetModal = true;
   }
@@ -329,7 +329,7 @@
     enableMaxTokens = t.core.max_tokens != null;
     valMaxTokens = t.core.max_tokens ?? 4096;
 
-    enableStream = t.core.stream != null;
+    enableStream = true;
     valStream = t.core.stream ?? true;
 
     showTargetModal = true;

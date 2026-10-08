@@ -30,10 +30,12 @@ func BuildBody(p Provider, t Target, in Input) ([]byte, error) {
 	base := make(map[string]any)
 	base["model"] = t.ModelName
 
-	// Only send stream if explicitly specified in Core
+	// Stream defaults to true unless explicitly disabled in Core
+	isStream := true
 	if t.Core.Stream != nil {
-		base["stream"] = *t.Core.Stream
+		isStream = *t.Core.Stream
 	}
+	base["stream"] = isStream
 
 	// Step 2: messages mapping
 	switch p.Protocol {
@@ -74,7 +76,11 @@ func BuildBody(p Provider, t Target, in Input) ([]byte, error) {
 			field := DetermineMaxTokensField(t.ModelName, t.MaxTokensField)
 			base[field] = *t.Core.MaxTokens
 		}
-
+		if p.StreamUsage && isStream {
+			base["stream_options"] = map[string]any{
+				"include_usage": true,
+			}
+		}
 
 	case "anthropic":
 		if in.System != "" {

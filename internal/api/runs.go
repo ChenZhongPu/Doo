@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"doo/internal/adapter"
@@ -200,7 +201,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		timeoutS = 300
 	}
 
-	runCtx, cancelAll := context.WithTimeout(r.Context(), time.Duration(timeoutS)*time.Second)
+	runCtx, cancelAll := context.WithCancel(r.Context())
 	defer cancelAll()
 
 	var wg sync.WaitGroup
@@ -217,6 +218,20 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 			s.RegisterCancel(callID, cancelCall)
 			defer s.UnregisterCancel(callID)
 
+			var timedOut atomic.Bool
+			firstTokenTimer := time.AfterFunc(time.Duration(timeoutS)*time.Second, func() {
+				timedOut.Store(true)
+				cancelCall()
+			})
+			defer firstTokenTimer.Stop()
+
+			var firstTokenOnce sync.Once
+			stopFirstTokenTimer := func() {
+				firstTokenOnce.Do(func() {
+					firstTokenTimer.Stop()
+				})
+			}
+
 			var ad adapter.Adapter
 			if prepCopy.provider.Protocol == "anthropic" {
 				ad = &adapter.AnthropicAdapter{Client: s.HTTPClient, Clock: s.Clock}
@@ -225,6 +240,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 			}
 
 			res := ad.Do(callCtx, prepCopy.provider, prepCopy.apiKey, prepCopy.body, func(delta adapter.Event) {
+				stopFirstTokenTimer()
 				_ = sse.Send(SSEDeltaEvent{
 					Type:   "delta",
 					CallID: callID,
@@ -232,6 +248,11 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 					Text:   delta.Text,
 				})
 			})
+
+			if timedOut.Load() {
+				res.Status = "error"
+				res.Err = fmt.Sprintf("timeout waiting for first token (TTFT exceeded %ds)", timeoutS)
+			}
 
 			// Save result to DB
 			_ = s.Store.UpdateCallFinished(callID, res)
@@ -247,6 +268,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 					Metrics:       res.Metrics,
 					ResponseModel: res.ResponseModel,
 					HTTPStatus:    res.HTTPStatus,
+					Output:        res.Output,
 				})
 			} else {
 				_ = sse.Send(SSEErrorEvent{

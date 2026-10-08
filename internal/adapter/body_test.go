@@ -50,11 +50,28 @@ func TestBuildBody_OpenAI_UnsetFieldsDoNotAppear(t *testing.T) {
 	if strings.Contains(bodyStr, "seed") {
 		t.Errorf("expected no seed in body, got: %s", bodyStr)
 	}
-	if strings.Contains(bodyStr, "stream") {
-		t.Errorf("expected no stream in body when unset, got: %s", bodyStr)
+	if !strings.Contains(bodyStr, `"stream":true`) {
+		t.Errorf("expected stream to be true by default, got: %s", bodyStr)
 	}
 	if strings.Contains(bodyStr, "stream_options") {
-		t.Errorf("expected no stream_options when StreamUsage is false or stream unset, got: %s", bodyStr)
+		t.Errorf("expected no stream_options when StreamUsage is false, got: %s", bodyStr)
+	}
+}
+
+func TestBuildBody_OpenAI_StreamUsage(t *testing.T) {
+	p := Provider{Protocol: "openai_chat", StreamUsage: true}
+	tgt := Target{
+		ModelName: "gpt-4o",
+	}
+	in := Input{
+		Messages: []Message{{Role: "user", Content: rawContent("hi")}},
+	}
+	body, err := BuildBody(p, tgt, in)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(string(body), `"stream_options":{"include_usage":true}`) {
+		t.Errorf("expected stream_options to be present, got: %s", string(body))
 	}
 }
 

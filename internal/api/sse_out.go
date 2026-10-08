@@ -35,6 +35,7 @@ type SSEDoneEvent struct {
 	Metrics       any             `json:"metrics,omitempty"`
 	ResponseModel string          `json:"response_model,omitempty"`
 	HTTPStatus    int             `json:"http_status,omitempty"`
+	Output        string          `json:"output,omitempty"`
 }
 
 type SSEErrorEvent struct {
