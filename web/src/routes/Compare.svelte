@@ -927,28 +927,41 @@
   }
 
   .sidebar {
-    width: 280px;
+    width: 340px;
     flex-shrink: 0;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem;
   }
+  @media (max-width: 900px) {
+    .compare-container {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+    }
+  }
 
   .sidebar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.6rem;
     margin-bottom: 0.75rem;
   }
   .sidebar-header h3 {
     font-size: 0.95rem;
     font-weight: 600;
+    white-space: nowrap;
+    margin: 0;
   }
   .link-config {
     font-size: 0.8rem;
     color: var(--color-primary);
     text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .target-list {
