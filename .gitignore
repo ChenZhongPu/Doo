@@ -1,0 +1,24 @@
+# Binaries and build outputs
+/bin/
+/dist/
+
+# Dependencies
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+
+# Local databases and secret keys
+*.db
+*.db-shm
+*.db-wal
+master.key
+.doo/
+
+# OS, IDE and editor files
+.DS_Store
+*.log
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
