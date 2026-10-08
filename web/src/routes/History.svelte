@@ -45,7 +45,7 @@
         runDetails[runId] = detail;
         for (const c of (detail.calls || [])) {
           activeTabs[c.id] = 'output';
-          renderMdMap[c.id] = false;
+          renderMdMap[c.id] = true;
         }
       } catch (e: any) {
         alert(`Failed to load run details: ${e.message}`);
@@ -288,7 +288,7 @@
 
                       {#if activeTabs[call.id] === 'output'}
                         <label class="md-toggle">
-                          <input type="checkbox" bind:checked={renderMdMap[call.id]} />
+                          <input type="checkbox" checked={renderMdMap[call.id] ?? true} onchange={e => renderMdMap[call.id] = e.currentTarget.checked} />
                           <span>{$t('markdownRender')}</span>
                         </label>
                       {/if}
@@ -303,7 +303,7 @@
                       {/if}
 
                       {#if activeTabs[call.id] === 'output'}
-                        {#if renderMdMap[call.id]}
+                        {#if renderMdMap[call.id] ?? true}
                           <div class="markdown-body">
                             {@html renderMd(call.output_text)}
                           </div>

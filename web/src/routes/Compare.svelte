@@ -238,6 +238,7 @@
     for (const tId of checkedTargetIds) {
       const tgt = targets.find(t => t.id === tId);
       if (!tgt) continue;
+      const existing = targetStates[tId];
       newStates[tId] = {
         target: tgt,
         provider: provMap.get(tgt.provider_id),
@@ -245,7 +246,7 @@
         output: '',
         reasoning: '',
         activeTab: 'output',
-        renderMarkdown: false,
+        renderMarkdown: existing ? existing.renderMarkdown : true,
       };
     }
     targetStates = newStates;
@@ -656,7 +657,7 @@
           output: '',
           reasoning: '',
           activeTab: 'output',
-          renderMarkdown: false,
+          renderMarkdown: true,
         }}
 
         {#if tgt}
@@ -761,7 +762,11 @@
               {#if state.activeTab === 'output'}
                 {#if state.renderMarkdown}
                   <div class="markdown-body">
-                    {@html renderMd(state.output)}
+                    {#if state.output}
+                      {@html renderMd(state.output)}
+                    {:else if state.status === 'running'}
+                      <span class="streaming-indicator">...</span>
+                    {/if}
                   </div>
                 {:else}
                   <pre class="pre-output">{state.output || (state.status === 'running' ? '...' : '')}</pre>
@@ -1201,6 +1206,11 @@
     min-height: 220px;
     max-height: 480px;
     overflow-y: auto;
+  }
+
+  .streaming-indicator {
+    color: var(--text-muted);
+    font-style: italic;
   }
 
   .pre-output {
