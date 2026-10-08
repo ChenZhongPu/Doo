@@ -1,358 +1,74 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { t, currentLanguage, setLanguage, type Language } from './lib/i18n';
+  import { t, currentLanguage, setLanguage } from './lib/i18n';
+  import { initializeTheme } from './lib/theme';
   import { api } from './lib/api';
+  import Icon from './lib/Icon.svelte';
+  import ThemePicker from './lib/ThemePicker.svelte';
   import Compare from './routes/Compare.svelte';
   import Config from './routes/Config.svelte';
   import History from './routes/History.svelte';
 
-  let currentRoute: string = $state(getHashRoute());
-  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '1.0.0' });
-
-  function getHashRoute(): string {
+  function getHashRoute() {
     const hash = window.location.hash.replace(/^#\/?/, '');
-    if (hash.startsWith('config')) return 'config';
-    if (hash.startsWith('history')) return 'history';
-    return 'compare';
+    return hash.startsWith('config') ? 'config' : hash.startsWith('history') ? 'history' : 'compare';
   }
+  let currentRoute = $state(getHashRoute());
+  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.1.0' });
+  const handleHashChange = () => { currentRoute = getHashRoute(); };
 
-  function handleHashChange() {
-    currentRoute = getHashRoute();
-  }
-
-  onMount(async () => {
+  onMount(() => {
+    const cleanupTheme = initializeTheme();
     window.addEventListener('hashchange', handleHashChange);
-    try {
-      const h = await api.getHealth();
-      healthInfo = h;
-    } catch (e) {
-      // Ignore
-    }
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    api.getHealth().then(health => { healthInfo = health; }).catch(() => {});
+    return () => { cleanupTheme(); window.removeEventListener('hashchange', handleHashChange); };
   });
-
-  function toggleLanguage() {
-    const nextLang: Language = $currentLanguage === 'en' ? 'zh' : 'en';
-    setLanguage(nextLang);
-  }
-
-  let tabTitle = $derived.by(() => {
-    let pageName = $t('navCompare');
-    if (currentRoute === 'history') {
-      pageName = $t('navHistory');
-    } else if (currentRoute === 'config') {
-      pageName = $t('navConfig');
-    }
-    return `Doo - ${pageName}`;
-  });
-
-  $effect(() => {
-    if (typeof document !== 'undefined') {
-      document.title = tabTitle;
-      document.documentElement.lang = $currentLanguage;
-    }
-  });
+  let tabTitle = $derived(`Doo — ${$t(currentRoute === 'history' ? 'navHistory' : currentRoute === 'config' ? 'navConfig' : 'navCompare')}`);
+  $effect(() => { document.documentElement.lang = $currentLanguage; });
 </script>
 
-<svelte:head>
-  <title>{tabTitle}</title>
-</svelte:head>
+<svelte:head><title>{tabTitle}</title></svelte:head>
 
 <div class="app-layout">
-  <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="nav-left">
-      <a href="#/" class="brand-link">
-        <span class="brand-logo">
-          <img src="/favicon.svg" alt="logo" class="brand-logo-img" width="24" height="24" />
-        </span>
-        <span class="brand-name">{$t('appName')}</span>
+      <a href="#/" class="brand-link" aria-label="Doo">
+        <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 6h8c7 0 11 4 11 10s-4 10-11 10H7V6Z" stroke="currentColor" stroke-width="2"/><path d="M12 11h3c4 0 6 2 6 5s-2 5-6 5h-3V11Z" fill="currentColor"/></svg>
+        <span class="brand-name">Doo<span class="brand-dot">.</span></span>
       </a>
-      <div class="version-badge-group" data-tooltip={`Version: ${healthInfo.version}${healthInfo.git_commit && healthInfo.git_commit !== 'release' && healthInfo.git_commit !== 'dev' ? '\nCommit: ' + healthInfo.git_commit : ''}${healthInfo.build_time ? '\nBuild: ' + healthInfo.build_time : ''}`} data-tooltip-pos="bottom">
-        <span class="brand-badge">v{healthInfo.version}</span>
-        {#if (healthInfo.git_commit && healthInfo.git_commit !== 'release' && healthInfo.git_commit !== 'dev') || healthInfo.build_time}
-          <span class="build-tag">
-            {#if healthInfo.git_commit && healthInfo.git_commit !== 'release' && healthInfo.git_commit !== 'dev'}
-              {healthInfo.git_commit}
-              {#if healthInfo.build_time} • {/if}
-            {/if}
-            {#if healthInfo.build_time}
-              {healthInfo.build_time}
-            {/if}
-          </span>
-        {/if}
-      </div>
+      <span class="brand-badge" data-tooltip={`Version: ${healthInfo.version}${healthInfo.git_commit ? '\nCommit: ' + healthInfo.git_commit : ''}${healthInfo.build_time ? '\nBuild: ' + healthInfo.build_time : ''}`} data-tooltip-pos="bottom">v{healthInfo.version}</span>
     </div>
-
-    <nav class="nav-center">
-      <a href="#/" class="nav-link" class:active={currentRoute === 'compare'}>
-        <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-          <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-          <path d="M7 21h10"/>
-          <path d="M12 3v18"/>
-          <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
-        </svg>
-        <span>{$t('navCompare')}</span>
-      </a>
-      <a href="#/history" class="nav-link" class:active={currentRoute === 'history'}>
-        <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
-          <path d="M12 7v5l4 2"/>
-        </svg>
-        <span>{$t('navHistory')}</span>
-      </a>
-      <a href="#/config" class="nav-link" class:active={currentRoute === 'config'}>
-        <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span>{$t('navConfig')}</span>
-      </a>
+    <nav class="nav-center" aria-label={$currentLanguage === 'zh' ? '主导航' : 'Main navigation'}>
+      <a href="#/" class="nav-link" class:active={currentRoute === 'compare'} aria-current={currentRoute === 'compare' ? 'page' : undefined}><Icon name="compare" /><span>{$t('navCompare')}</span></a>
+      <a href="#/history" class="nav-link" class:active={currentRoute === 'history'} aria-current={currentRoute === 'history' ? 'page' : undefined}><Icon name="history" /><span>{$t('navHistory')}</span></a>
+      <a href="#/config" class="nav-link" class:active={currentRoute === 'config'} aria-current={currentRoute === 'config' ? 'page' : undefined}><Icon name="settings" /><span>{$t('navConfig')}</span></a>
     </nav>
-
-    <div class="nav-right">
-      <button class="btn btn-sm btn-outline lang-toggle" onclick={toggleLanguage}>
-        🌐 {$currentLanguage === 'en' ? '中文' : 'English'}
-      </button>
-    </div>
+    <div class="nav-right"><button class="lang-toggle" onclick={() => setLanguage($currentLanguage === 'en' ? 'zh' : 'en')} aria-label={$currentLanguage === 'en' ? '切换到中文' : 'Switch to English'}><Icon name="language" /><span>{$currentLanguage === 'en' ? '中文' : 'English'}</span></button></div>
   </header>
-
-  <!-- Route View -->
   <div class="content-wrapper">
-    {#if currentRoute === 'compare'}
-      <Compare />
-    {:else if currentRoute === 'config'}
-      <Config />
-    {:else if currentRoute === 'history'}
-      <History />
-    {/if}
+    {#if currentRoute === 'compare'}<Compare />{:else if currentRoute === 'config'}<Config />{:else}<History />{/if}
   </div>
+  <ThemePicker />
 </div>
 
 <style>
-  :global(:root) {
-    /* Base canvas & surfaces (Obsidian / Zinc aesthetic) */
-    --bg-page: #090a0f;
-    --bg-card: #13141c;
-    --bg-card-header: #101118;
-    --bg-card-tabs: #0d0e14;
-    --bg-card-metrics: #0a0b10;
-    --bg-item: #171822;
-    --bg-selected: rgba(99, 102, 241, 0.08);
-    --bg-input: #0d0e14;
-    --bg-input-row: #14151e;
-    --bg-code: #0a0b10;
-    --bg-hover: #1c1d29;
-    --bg-active: #232434;
-
-    /* Hairline translucent borders */
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-subtle: rgba(255, 255, 255, 0.04);
-    --border-focus: rgba(99, 102, 241, 0.45);
-
-    /* Text & contrast */
-    --text-main: #f1f2f6;
-    --text-secondary: #9ca0af;
-    --text-muted: #686b7c;
-    --text-dim: #454754;
-
-    /* Refined Primary: Sophisticated Indigo-Violet */
-    --color-primary: #6366f1;
-    --color-primary-hover: #4f46e5;
-    --color-primary-light: #818cf8;
-    --color-primary-subtle: rgba(99, 102, 241, 0.12);
-
-    /* Functional semantic colors (subdued, elegant, never neon) */
-    --color-success: #10b981;
-    --color-success-light: #34d399;
-    --bg-success-subtle: rgba(16, 185, 129, 0.1);
-    --border-success-subtle: rgba(16, 185, 129, 0.2);
-
-    --color-danger: #f43f5e;
-    --color-danger-light: #fb7185;
-    --bg-danger-subtle: rgba(244, 63, 94, 0.1);
-    --border-danger-subtle: rgba(244, 63, 94, 0.2);
-
-    --color-warning: #f59e0b;
-    --color-warning-light: #fbbf24;
-    --bg-warning-subtle: rgba(245, 158, 11, 0.1);
-    --border-warning-subtle: rgba(245, 158, 11, 0.2);
-  }
-
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg-page);
-    color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  :global(*, *::before, *::after) {
-    box-sizing: border-box;
-  }
-
-  /* Custom modern minimalist scrollbar */
-  :global(::-webkit-scrollbar) {
-    width: 6px;
-    height: 6px;
-  }
-  :global(::-webkit-scrollbar-track) {
-    background: transparent;
-  }
-  :global(::-webkit-scrollbar-thumb) {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-  }
-  :global(::-webkit-scrollbar-thumb:hover) {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  .app-layout {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
-  }
-
-  .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.65rem 1.75rem;
-    background: rgba(13, 14, 20, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .nav-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .brand-link {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    color: var(--text-main);
-  }
-  .brand-logo-img {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    display: block;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  }
-  .brand-name {
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: #ffffff;
-  }
-  .version-badge-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
-    padding: 0.12rem 0.45rem;
-    border-radius: 9999px;
-    cursor: default;
-  }
-  .brand-badge {
-    font-size: 0.68rem;
-    color: var(--color-primary-light);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .build-tag {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    border-left: 1px solid var(--border-color);
-    padding-left: 0.35rem;
-  }
-
-  .nav-center {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid var(--border-color);
-    padding: 0.2rem;
-    border-radius: 9px;
-  }
-  .nav-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.35rem 0.8rem;
-    border-radius: 7px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 500;
-    transition: all 0.15s ease;
-    border: 1px solid transparent;
-  }
-  .nav-icon {
-    flex-shrink: 0;
-    opacity: 0.8;
-  }
-  .nav-link:hover {
-    color: var(--text-main);
-    background: rgba(255, 255, 255, 0.04);
-  }
-  .nav-link.active {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.08);
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  }
-  .nav-link.active .nav-icon {
-    opacity: 1;
-    color: var(--color-primary-light);
-  }
-
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .lang-toggle {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-color);
-    border-radius: 7px;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    padding: 0.35rem 0.7rem;
-    transition: all 0.15s ease;
-  }
-  .lang-toggle:hover {
-    color: var(--text-main);
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  .content-wrapper {
-    flex: 1;
-    max-width: 1600px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 1.5rem 1.75rem;
-  }
-
+  .app-layout { min-height: 100vh; }
+  .navbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 72px; padding: 0 36px; border-bottom: 1px solid var(--border-color); background: var(--bg-page); position: sticky; top: 0; z-index: 100; }
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .brand-link { display: inline-flex; align-items: center; gap: 9px; color: var(--text-main); text-decoration: none; }
+  .brand-mark { color: var(--color-primary); }
+  .brand-name { font-size: 23px; font-weight: 650; letter-spacing: -.07em; }
+  .brand-dot { color: var(--color-primary); }
+  .brand-badge { font-size: 10px; color: var(--text-muted); border-left: 1px solid var(--border-color); padding-left: 12px; font-family: ui-monospace, monospace; }
+  .nav-center { display: flex; height: 100%; align-items: stretch; gap: 28px; }
+  .nav-link { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); text-decoration: none; font-size: 13px; border-bottom: 2px solid transparent; padding: 2px 2px 0; }
+  .nav-link:hover { color: var(--text-main); }
+  .nav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+  .nav-right { justify-self: end; }
+  .lang-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text-secondary); font-size: 12px; cursor: pointer; }
+  .lang-toggle:hover { background: var(--bg-hover); color: var(--text-main); }
+  .content-wrapper { max-width: 1540px; width: 100%; margin: 0 auto; padding: 36px 36px 90px; }
+  @media (max-width: 700px) { .navbar { height: auto; min-height: 64px; grid-template-columns: 1fr auto; padding: 0 18px; } .nav-left { padding: 16px 0; } .nav-center { grid-row: 2; grid-column: 1 / -1; justify-content: center; gap: 32px; height: 42px; } .nav-right { grid-row: 1; grid-column: 2; } .content-wrapper { padding: 24px 16px 80px; } }
   /* Global utility components */
   :global(.btn) {
     display: inline-flex;
@@ -371,7 +87,7 @@
     line-height: 1.35;
   }
   :global(.btn:hover:not(:disabled)) {
-    filter: brightness(1.08);
+    background-color: var(--bg-active);
   }
   :global(.btn:active:not(:disabled)) {
     transform: scale(0.98);
@@ -382,14 +98,14 @@
   }
 
   :global(.btn-primary) {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: #ffffff;
+    background: var(--bg-primary-button);
+    color: var(--color-on-primary);
     font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 14px rgba(99, 102, 241, 0.25);
+    border: 1px solid var(--bg-hover);
+    box-shadow: none;
   }
   :global(.btn-primary:hover:not(:disabled)) {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 18px rgba(99, 102, 241, 0.4);
+    box-shadow: none;
   }
   :global(.btn-secondary) {
     background: var(--bg-item);
@@ -398,14 +114,14 @@
   }
   :global(.btn-secondary:hover:not(:disabled)) {
     background: var(--bg-hover);
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: var(--bg-hover);
   }
   :global(.btn-danger) {
-    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-    color: #ffffff;
+    background: var(--color-danger);
+    color: var(--bg-card);
     font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 12px rgba(244, 63, 94, 0.25);
+    border: 1px solid var(--bg-hover);
+    box-shadow: none;
   }
   :global(.btn-outline) {
     background: transparent;
@@ -414,8 +130,8 @@
   }
   :global(.btn-outline:hover:not(:disabled)) {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: var(--bg-hover);
+    border-color: var(--bg-hover);
   }
   :global(.btn-outline-danger) {
     background: transparent;
@@ -451,7 +167,7 @@
     padding: 0.2rem 0.4rem;
   }
   :global(.btn-text:hover) {
-    color: #ffffff;
+    color: var(--text-main);
     text-decoration: underline;
   }
   :global(.btn-icon) {
@@ -470,8 +186,8 @@
   }
   :global(.btn-icon:hover:not(:disabled)) {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--bg-hover);
+    border-color: var(--bg-hover);
   }
   :global(.text-danger) {
     color: var(--color-danger-light) !important;
@@ -490,8 +206,8 @@
   }
   :global(.badge-running) {
     background: var(--color-primary-subtle);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: var(--color-primary-light);
+    border: 1px solid var(--color-primary-subtle);
   }
   :global(.badge-done) {
     background: var(--bg-success-subtle);
@@ -505,7 +221,7 @@
   }
   :global(.badge-canceled) {
     background: rgba(161, 161, 170, 0.08);
-    color: #a1a1aa;
+    color: var(--text-muted);
     border: 1px solid rgba(161, 161, 170, 0.2);
   }
   :global(.badge-secondary) {
@@ -542,12 +258,12 @@
   }
   :global(.markdown-body code) {
     font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--bg-hover);
+    border: 1px solid var(--bg-hover);
     padding: 0.12rem 0.35rem;
     border-radius: 4px;
     font-size: 0.84em;
-    color: #e2e8f0;
+    color: var(--text-main);
   }
   :global(.markdown-body pre code) {
     background: transparent;
@@ -569,7 +285,7 @@
     left: 50%;
     transform: translateX(-50%) translateY(1px);
     border: 5px solid transparent;
-    border-top-color: #171822;
+    border-top-color: var(--bg-card);
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
@@ -584,10 +300,10 @@
     transform: translateX(-50%) translateY(2px);
     padding: 0.3rem 0.6rem;
     border-radius: 6px;
-    background: rgba(18, 19, 27, 0.96);
+    background: var(--bg-card);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: #f1f2f6;
+    color: var(--text-main);
     font-size: 0.72rem;
     font-weight: 500;
     line-height: 1.38;
@@ -599,8 +315,8 @@
     visibility: hidden;
     transition: opacity 0.15s ease, transform 0.15s ease;
     z-index: 10000;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.65);
+    border: 1px solid var(--bg-hover);
+    box-shadow: none;
     text-align: left;
   }
   :global([data-tooltip]:hover::before) {
@@ -619,7 +335,7 @@
     top: 100%;
     transform: translateX(-50%) translateY(-1px);
     border-top-color: transparent;
-    border-bottom-color: #171822;
+    border-bottom-color: var(--bg-card);
   }
   :global([data-tooltip-pos="bottom"]::after) {
     bottom: auto;
@@ -650,4 +366,11 @@
   :global([data-tooltip-pos="top-right"]:hover::before) {
     transform: translateY(0);
   }
+
+  :global(.btn-primary:hover:not(:disabled)) { background: var(--bg-primary-button-hover); }
+  :global(.btn) { gap: 7px; font-weight: 500; }
+  :global(.btn-icon:disabled) { opacity: .35; cursor: not-allowed; }
+  :global(.btn-footer) { display: inline-flex; align-items: center; gap: 6px; }
+  :global(.badge-idle) { color: var(--text-muted); background: var(--bg-item); }
+  :global(.badge-running) { border-color: var(--border-focus); }
 </style>

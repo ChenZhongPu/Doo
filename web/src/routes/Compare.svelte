@@ -5,6 +5,7 @@
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { Provider, Target, Message, CallRaw } from '../lib/types';
 
@@ -209,7 +210,7 @@
 
   async function openPreview() {
     if (checkedTargetIds.length === 0) {
-      alert($t('noTargetsSelected'));
+      alert($t('noModelsSelected'));
       return;
     }
 
@@ -235,7 +236,7 @@
 
   async function handleSend() {
     if (checkedTargetIds.length === 0) {
-      alert($t('noTargetsSelected'));
+      alert($t('noModelsSelected'));
       return;
     }
     if (maxTargets > 0 && checkedTargetIds.length > maxTargets) {
@@ -498,6 +499,8 @@
   }
 </script>
 
+<div class="page-heading"><div><span class="page-eyebrow">WORKBENCH</span><h1>{$t('compareTitle')}</h1><p>{$t('compareSubtitle')}</p></div></div>
+
 <div class="compare-container">
   <!-- Left Sidebar: Models list grouped by provider -->
   <aside class="sidebar">
@@ -570,7 +573,7 @@
       <!-- System prompt collapsible -->
       <div class="system-section">
         <button type="button" class="system-header" onclick={() => isSystemCollapsed = !isSystemCollapsed}>
-          <span>⚙️ System Prompt</span>
+          <span class="heading-with-icon"><Icon name="settings" /> {$t('systemPrompt')}</span>
           <span class="btn-text">
             {isSystemCollapsed ? $t('expand') : $t('collapse')}
           </span>
@@ -590,9 +593,9 @@
       <!-- Messages Editor -->
       <div class="messages-section">
         <div class="messages-header">
-          <h4>💬 {$t('messages')}</h4>
+          <h4 class="heading-with-icon"><Icon name="message" /> {$t('messages')}</h4>
           <button type="button" class="btn btn-sm" onclick={addMessage} disabled={isRunning}>
-            + {$t('addMessage')}
+            <Icon name="plus" size={14} /> {$t('addMessage')}
           </button>
         </div>
 
@@ -605,8 +608,8 @@
                 onchange={saveToStorage}
                 disabled={isRunning}
               >
-                <option value="user">user</option>
-                <option value="assistant">assistant</option>
+                <option value="user">{$t('userRole')}</option>
+                <option value="assistant">{$t('assistantRole')}</option>
               </select>
 
               <div class="row-actions">
@@ -616,14 +619,14 @@
                   disabled={i === 0 || isRunning}
                   onclick={() => moveMessage(i, 'up')}
                   data-tooltip={$t('moveUp')}
-                >↑</button>
+                 aria-label={$t('moveUp')}><Icon name="up" size={14} /></button>
                 <button
                   type="button"
                   class="btn-icon"
                   disabled={i === messages.length - 1 || isRunning}
                   onclick={() => moveMessage(i, 'down')}
                   data-tooltip={$t('moveDown')}
-                >↓</button>
+                 aria-label={$t('moveDown')}><Icon name="down" size={14} /></button>
                 <button
                   type="button"
                   class="btn-icon text-danger"
@@ -631,7 +634,7 @@
                   onclick={() => removeMessage(i)}
                   data-tooltip={$t('remove')}
                   data-tooltip-pos="top-right"
-                >×</button>
+                 aria-label={$t('close')}><Icon name="close" size={14} /></button>
               </div>
             </div>
 
@@ -656,7 +659,7 @@
             onclick={openPreview}
             disabled={checkedTargetIds.length === 0}
           >
-            🔍 {$t('previewBody')}
+            <Icon name="code" /> {$t('previewBody')}
           </button>
 
           <label class="timeout-label" data-tooltip={$t('timeoutTooltip')} data-tooltip-pos="bottom">
@@ -676,7 +679,7 @@
         <div class="controls-right">
           {#if isRunning}
             <button type="button" class="btn btn-danger" onclick={handleStopAll}>
-              ⏹ {$t('stopAll')}
+              <Icon name="stop" /> {$t('stopAll')}
             </button>
           {:else}
             <button
@@ -685,12 +688,16 @@
               onclick={handleSend}
               disabled={checkedTargetIds.length === 0}
             >
-              🚀 {$t('send')} ({checkedTargetIds.length})
+              <Icon name="send" /> {$t('send')} ({checkedTargetIds.length})
             </button>
           {/if}
         </div>
       </div>
     </section>
+
+    {#if checkedTargetIds.length === 0}
+      <div class="workbench-empty"><Icon name="compare" size={28} /><h3>{$t('compareEmpty')}</h3><p>{$t('compareEmptyHint')}</p></div>
+    {/if}
 
     <!-- Results Cards Grid -->
     <section class="results-grid">
@@ -735,7 +742,7 @@
                   {:else if state.status === 'canceled'}
                     {$t('statusCanceled')}
                   {:else}
-                    —
+                    {$t('readyToRun')}
                   {/if}
                 </span>
 
@@ -815,6 +822,8 @@
                       {/if}
                     {:else if state.status === 'running'}
                       <span class="streaming-indicator">...</span>
+                    {:else}
+                      <div class="output-empty"><span class="empty-rule"></span><p>{$t('outputPlaceholder')}</p></div>
                     {/if}
                   </div>
                 {:else}
@@ -880,7 +889,8 @@
                 class="btn-footer"
                 onclick={() => copyText(state.output, state)}
               >
-                {state.copyTooltip ? $t('copied') : `📋 ${$t('copyOutput')}`}
+                <Icon name={state.copyTooltip ? "check" : "copy"} />
+                {state.copyTooltip ? $t('copied') : $t('copyOutput')}
               </button>
 
               {#if state.callId}
@@ -889,14 +899,14 @@
                   class="btn-footer"
                   onclick={() => openExport(state.callId!, 'curl')}
                 >
-                  ⚡ {$t('exportCurl')}
+                  <Icon name="connection" /> {$t('exportCurl')}
                 </button>
                 <button
                   type="button"
                   class="btn-footer"
                   onclick={() => openExport(state.callId!, 'python')}
                 >
-                  🐍 {$t('exportPython')}
+                  <Icon name="code" /> {$t('exportPython')}
                 </button>
               {/if}
             </div>
@@ -909,11 +919,11 @@
 
 <!-- Modal: Preview Request Body -->
 {#if previewModalOpen}
-  <div class="modal-backdrop" role="presentation" onclick={() => previewModalOpen = false}>
-    <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" onclick={e => e.stopPropagation()}>
+  <div class="modal-backdrop" role="presentation" onclick={e => { if (e.target === e.currentTarget) previewModalOpen = false; }}>
+    <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" onkeydown={e => { if (e.key === 'Escape') previewModalOpen = false; }}>
       <div class="modal-header">
         <h3>{$t('previewModalTitle')}</h3>
-        <button class="btn-icon" onclick={() => previewModalOpen = false}>×</button>
+        <button class="btn-icon" onclick={() => previewModalOpen = false} aria-label={$t('close')}><Icon name="close" size={14} /></button>
       </div>
       <div class="modal-body">
         {#each previewData as item}
@@ -935,11 +945,11 @@
 
 <!-- Modal: Export Snippet -->
 {#if exportModalOpen}
-  <div class="modal-backdrop" role="presentation" onclick={() => exportModalOpen = false}>
-    <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" onclick={e => e.stopPropagation()}>
+  <div class="modal-backdrop" role="presentation" onclick={e => { if (e.target === e.currentTarget) exportModalOpen = false; }}>
+    <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" onkeydown={e => { if (e.key === 'Escape') exportModalOpen = false; }}>
       <div class="modal-header">
         <h3>{exportTitle}</h3>
-        <button class="btn-icon" onclick={() => exportModalOpen = false}>×</button>
+        <button class="btn-icon" onclick={() => exportModalOpen = false} aria-label={$t('close')}><Icon name="close" size={14} /></button>
       </div>
       <div class="modal-body">
         <pre class="code-preview export-code">{exportCode}</pre>
@@ -962,19 +972,22 @@
   }
 
   .sidebar {
-    width: 340px;
+    width: 280px;
     flex-shrink: 0;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 1.1rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    padding: 1.25rem;
+    box-shadow: none;
   }
   @media (max-width: 900px) {
     .compare-container {
       flex-direction: column;
     }
     .sidebar {
+      width: 100%;
+    }
+    .main-content {
       width: 100%;
     }
   }
@@ -984,13 +997,13 @@
     justify-content: space-between;
     align-items: center;
     gap: 0.6rem;
-    margin-bottom: 0.85rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
   }
   .sidebar-header h3 {
     font-size: 0.92rem;
     font-weight: 600;
     letter-spacing: -0.01em;
-    white-space: nowrap;
     margin: 0;
     display: inline-flex;
     align-items: center;
@@ -1003,7 +1016,7 @@
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-hover);
     border: 1px solid var(--border-color);
     padding: 0.1rem 0.45rem;
     border-radius: 9999px;
@@ -1013,8 +1026,8 @@
   }
   .models-count-badge:hover {
     color: var(--color-primary-light);
-    border-color: rgba(99, 102, 241, 0.35);
-    background: rgba(99, 102, 241, 0.08);
+    border-color: var(--border-focus);
+    background: var(--color-primary-subtle);
   }
   .link-config {
     font-size: 0.78rem;
@@ -1026,7 +1039,7 @@
     transition: color 0.15s ease;
   }
   .link-config:hover {
-    color: #ffffff;
+    color: var(--text-main);
   }
 
   .empty-notice {
@@ -1050,7 +1063,7 @@
   }
 
   .sidebar-prov-group {
-    background: rgba(255, 255, 255, 0.018);
+    background: var(--bg-hover);
     border: 1px solid var(--border-color);
     border-radius: 9px;
     padding: 0.55rem;
@@ -1082,7 +1095,7 @@
     border-radius: 6px;
     border: 1px solid transparent;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-hover);
     transition: all 0.15s ease;
     user-select: none;
   }
@@ -1092,12 +1105,12 @@
     border-radius: 4px;
   }
   .target-item:hover {
-    background: rgba(255, 255, 255, 0.045);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--bg-hover);
+    border-color: var(--bg-hover);
   }
   .target-item.checked {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.3);
+    background: var(--color-primary-subtle);
+    border-color: var(--border-focus);
   }
 
   .target-info {
@@ -1115,7 +1128,7 @@
     text-overflow: ellipsis;
   }
   .target-item.checked .target-label {
-    color: #ffffff;
+    color: var(--text-main);
     font-weight: 600;
   }
 
@@ -1130,7 +1143,7 @@
     border-radius: 12px;
     padding: 1.25rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
   }
 
   .system-section {
@@ -1153,7 +1166,7 @@
     margin-bottom: 0.5rem;
   }
   .system-header:hover .btn-text {
-    color: #ffffff;
+    color: var(--text-main);
   }
   .system-textarea {
     margin-top: 0.4rem;
@@ -1176,7 +1189,7 @@
   }
 
   .message-row {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-hover);
     border: 1px solid var(--border-color);
     border-radius: 9px;
     padding: 0.85rem;
@@ -1185,7 +1198,7 @@
   }
   .message-row:focus-within {
     border-color: var(--border-focus);
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--bg-hover);
   }
   .message-meta {
     display: flex;
@@ -1232,7 +1245,7 @@
   }
   .input-textarea:focus {
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+    box-shadow: none;
   }
   .input-textarea::placeholder {
     color: var(--text-muted);
@@ -1277,7 +1290,7 @@
 
   .results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
     gap: 1.25rem;
   }
 
@@ -1288,16 +1301,16 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   .result-card.status-running {
-    border-color: rgba(99, 102, 241, 0.45);
-    box-shadow: 0 0 24px rgba(99, 102, 241, 0.12);
+    border-color: var(--border-focus);
+    box-shadow: none;
   }
   .result-card.status-error {
-    border-color: rgba(244, 63, 94, 0.4);
-    box-shadow: 0 0 20px rgba(244, 63, 94, 0.08);
+    border-color: var(--border-danger-subtle);
+    box-shadow: none;
   }
 
   .card-header {
@@ -1358,14 +1371,14 @@
   }
   .tab-btn:hover {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-hover);
   }
   .tab-btn.active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
+    background: var(--bg-hover);
+    border-color: var(--bg-hover);
+    color: var(--text-main);
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
   }
   .md-toggle {
     margin-left: auto;
@@ -1384,7 +1397,7 @@
   .card-body {
     flex: 1;
     padding: 1rem 1.1rem;
-    min-height: 240px;
+    min-height: 220px;
     max-height: 520px;
     overflow-y: auto;
     line-height: 1.6;
@@ -1424,8 +1437,8 @@
     font-size: 0.82rem;
     line-height: 1.5;
     color: var(--text-muted);
-    border-left: 2px solid rgba(99, 102, 241, 0.4);
-    background: rgba(99, 102, 241, 0.02);
+    border-left: 2px solid var(--color-primary-subtle);
+    background: var(--color-primary-subtle);
     padding: 0.6rem 0.8rem;
     border-radius: 0 6px 6px 0;
     margin: 0;
@@ -1437,7 +1450,7 @@
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
-    color: #cbd5e1;
+    color: var(--text-secondary);
   }
   .loading-state {
     color: var(--text-muted);
@@ -1503,15 +1516,15 @@
     transition: all 0.15s ease;
   }
   .btn-footer:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-hover);
     border-color: var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main);
   }
 
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.72);
+    background: var(--bg-backdrop);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     display: flex;
@@ -1529,7 +1542,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+    box-shadow: none;
   }
   .modal-header {
     display: flex;
@@ -1564,7 +1577,7 @@
     border-radius: 7px;
     border: 1px solid var(--border-color);
     overflow-x: auto;
-    color: #cbd5e1;
+    color: var(--text-secondary);
   }
   .export-code {
     max-height: 50vh;
@@ -1594,4 +1607,22 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .sidebar-prov-group { background: transparent; border: 0; border-radius: 0; padding: 0; margin-bottom: 16px; }
+  .sidebar-prov-header { border: 0; padding: 0 4px 10px; letter-spacing: .06em; font-size: 10px; }
+  .target-item { padding: 10px; background: transparent; }
+  .target-item.checked { background: var(--bg-selected); border-color: var(--border-focus); }
+  .target-label { font-weight: 500; }
+  .output-empty { min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: var(--text-muted); font-size: 12px; }
+  .empty-rule { height: 1px; width: 24px; background: var(--border-focus); }
+  .workbench-empty { text-align: center; padding: 60px 28px; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-muted); }
+  .workbench-empty h3 { color: var(--text-secondary); font-size: 15px; font-weight: 500; margin: 16px 0 8px; }
+  .workbench-empty p { font-size: 13px; margin: 0; }
+  .tab-btn.active { background: var(--bg-selected); color: var(--color-primary); border-color: transparent; }
+  .controls-bar { gap: 12px; flex-wrap: wrap; }
+  .controls-left { flex-wrap: wrap; }
+  .card-tabs { flex-wrap: wrap; }
+  .metric-item { min-width: 0; }
+  .modal-dialog { box-shadow: var(--shadow-menu); }
+  @media (max-width: 600px) { .prompt-box { padding: 16px; } .card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

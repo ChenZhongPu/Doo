@@ -14,6 +14,7 @@ Before running expensive batch benchmarks or dataset evaluations, `doo` allows y
 - **Exact Byte-Level Request & Response Inspector**: View the raw request payload and raw upstream SSE response.
 - **Lossless Export to curl & Python**: Export calls directly into reproducible `curl` commands (with heredoc `--data-binary`) and `httpx` Python scripts.
 - **Internationalization (i18n)**: Built-in bilingual UI (English and Chinese, default English), toggleable at any time and saved in local storage.
+- **Appearance**: Light, dark, and system themes, with a persistent appearance menu in the lower-left corner.
 - **Secure Key Management**: Supports referencing environment variables (`env:VAR_NAME`) or locally encrypted API keys (AES-256-GCM via `master.key`). Keys are never returned in plain text or logged.
 - **Single Self-Contained Binary**: Zero CGO dependencies (`CGO_ENABLED=0`), embedded SQLite and embedded web frontend, binary size < 15 MB.
 

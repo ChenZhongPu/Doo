@@ -5,6 +5,7 @@
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
+  import Icon from '../lib/Icon.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { RunSummary, RunDetail, CallRecord, CallRaw } from '../lib/types';
 
@@ -161,9 +162,9 @@
 </script>
 
 <div class="history-page">
-  <div class="history-header">
-    <h2>{$t('historyTitle')}</h2>
-    <button class="btn btn-sm btn-secondary" onclick={loadRuns}>🔄 Refresh</button>
+  <div class="history-header page-heading">
+    <div><span class="page-eyebrow">ACTIVITY</span><h1>{$t('historyTitle')}</h1><p>{$t('historySubtitle')}</p></div>
+    <button class="btn btn-sm btn-secondary" onclick={loadRuns}><Icon name="refresh" /> {$t('refresh')}</button>
   </div>
 
   {#if errorMsg}
@@ -202,7 +203,7 @@
             <div class="run-calls-summary">
               {#each run.calls as c}
                 <span class="badge badge-{c.status} call-pill">
-                  {c.label}: {formatMs(c.totalMs)}
+                  {c.label}: {formatMs(c.total_ms)}
                 </span>
               {/each}
             </div>
@@ -213,14 +214,14 @@
                 onclick={() => handleLoadToCompare(run)}
                 title={$t('loadToCompare')}
               >
-                📥 {$t('loadToCompare')}
+                <Icon name="import" /> {$t('loadToCompare')}
               </button>
               <button
-                class="btn btn-xs btn-danger"
+                class="btn btn-xs btn-outline-danger"
                 onclick={() => handleDeleteRun(run.id)}
-                data-tooltip={$t('deleteRun')}
+                aria-label={$t('deleteRun')} data-tooltip={$t('deleteRun')}
               >
-                ✕
+                <Icon name="trash" />
               </button>
               <button class="btn-text" onclick={() => toggleExpand(run.id)}>
                 {expandedRunId === run.id ? $t('hideDetails') : $t('viewDetails')}
@@ -382,13 +383,6 @@
     justify-content: space-between;
     align-items: center;
   }
-  .history-header h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin: 0;
-    color: var(--text-main);
-  }
 
   .run-list {
     display: flex;
@@ -401,12 +395,12 @@
     border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     transition: all 0.2s ease;
   }
   .run-card.expanded {
-    border-color: rgba(99, 102, 241, 0.45);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    border-color: var(--color-primary-subtle);
+    box-shadow: none;
   }
 
   .run-summary-bar {
@@ -420,7 +414,7 @@
     transition: background-color 0.15s ease;
   }
   .run-summary-bar:hover {
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--bg-hover);
   }
 
   .run-meta {
@@ -455,7 +449,7 @@
     font-size: 0.72rem;
     padding: 0.15rem 0.55rem;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--bg-hover);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
     display: inline-flex;
@@ -464,8 +458,8 @@
     transition: all 0.15s ease;
   }
   .call-pill:hover {
-    border-color: rgba(99, 102, 241, 0.35);
-    color: #ffffff;
+    border-color: var(--color-primary-subtle);
+    color: var(--text-main);
   }
 
   .run-actions {
@@ -477,12 +471,12 @@
   .expanded-content {
     border-top: 1px solid var(--border-color);
     padding: 1.35rem;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--bg-card-header);
   }
 
   .results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
     gap: 1.25rem;
   }
 
@@ -493,7 +487,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
   }
   .card-header {
     display: flex;
@@ -547,14 +541,14 @@
   }
   .tab-btn:hover {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-hover);
   }
   .tab-btn.active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
+    background: var(--bg-hover);
+    border-color: var(--bg-hover);
+    color: var(--text-main);
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
   }
   .md-toggle {
     margin-left: auto;
@@ -595,8 +589,8 @@
     font-size: 0.82rem;
     line-height: 1.5;
     color: var(--text-muted);
-    border-left: 2px solid rgba(99, 102, 241, 0.4);
-    background: rgba(99, 102, 241, 0.02);
+    border-left: 2px solid var(--color-primary-subtle);
+    background: var(--color-primary-subtle);
     padding: 0.6rem 0.8rem;
     border-radius: 0 6px 6px 0;
     margin: 0;
@@ -608,7 +602,7 @@
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
-    color: #cbd5e1;
+    color: var(--text-secondary);
   }
 
   .card-metrics {
@@ -644,4 +638,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .tab-btn.active { background: var(--bg-selected); color: var(--color-primary); border-color: transparent; }
+  .run-card.expanded { border-color: var(--border-focus); }
+  @media (max-width: 1100px) { .run-summary-bar { grid-template-columns: 1fr; gap: 12px; padding: 20px; } }
+  .run-prompt { min-width: 0; overflow-wrap: anywhere; }
+  .run-actions { flex-wrap: wrap; }
+  .metric-item { min-width: 0; }
+  .card-tabs { flex-wrap: wrap; }
+  @media (max-width: 600px) { .card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
