@@ -42,10 +42,10 @@
 </script>
 
 <div class="message-actions">
-  <button type="button" class="btn-icon" disabled={disabled || !text} onclick={onclear} aria-label={$t('clearMessage')} title={$t('clearMessage')} data-tooltip={$t('clearMessage')}>
+  <button type="button" class="btn-icon" disabled={disabled || !text} onclick={onclear} aria-label={$t('clearMessage')} data-tooltip={$t('clearMessage')}>
     <Icon name="erase" size={14} />
   </button>
-  <button type="button" class="btn-icon" class:copied={result === 'copied'} disabled={!text || copying} onclick={copyMessage} aria-label={copyLabel} title={copyLabel} data-tooltip={copyLabel}>
+  <button type="button" class="btn-icon" class:copied={result === 'copied'} disabled={!text || copying} onclick={copyMessage} aria-label={copyLabel} data-tooltip={copyLabel}>
     <Icon name={result === 'copied' ? 'check' : 'copy'} size={14} />
   </button>
   <span class="copy-feedback" role="status" aria-live="polite">{result ? copyLabel : ''}</span>

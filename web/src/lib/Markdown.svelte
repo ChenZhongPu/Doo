@@ -22,6 +22,10 @@
       clearTimers();
       feedback = '';
       node.innerHTML = DOMPurify.sanitize(marked.parse(next.text, { async: false }) as string);
+      for (const element of node.querySelectorAll<HTMLElement>('[title]')) {
+        element.dataset.tooltip = element.getAttribute('title') || '';
+        element.removeAttribute('title');
+      }
       for (const pre of node.querySelectorAll('pre')) {
         const code = pre.querySelector('code');
         if (!code) continue;
@@ -33,7 +37,7 @@
         button.type = 'button';
         button.className = 'code-copy-button';
         function setLabel(label: string, copied = false) {
-          button.title = label;
+          button.dataset.tooltip = label;
           button.setAttribute('aria-label', label);
           button.innerHTML = copied ? checkIcon : copyIcon;
           button.classList.toggle('copied', copied);

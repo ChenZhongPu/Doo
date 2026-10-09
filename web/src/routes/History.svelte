@@ -249,7 +249,7 @@
               <button
                 class="btn btn-xs btn-outline"
                 onclick={() => handleLoadToCompare(run)}
-                title={$t('loadToCompare')}
+                data-tooltip={$t('loadToCompare')}
               >
                 <Icon name="import" /> {$t('loadToCompare')}
               </button>
@@ -278,7 +278,6 @@
                       <div
                         class="card-title-group"
                         data-tooltip={getCallTooltip(call)}
-                        data-tooltip-pos="bottom"
                       >
                         <div class="card-title-row">
                           {#if snap.provider}
@@ -394,7 +393,7 @@
                       </div>
                       <div class="metric-item">
                         <span class="metric-label">{$t('metricModel')}</span>
-                        <span class="metric-value truncate" title={call.response_model || ''}>
+                        <span class="metric-value truncate" data-tooltip={call.response_model || ''}>
                           {call.response_model || '—'}
                         </span>
                       </div>

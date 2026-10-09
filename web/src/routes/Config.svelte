@@ -472,7 +472,8 @@
         type="button"
         class="btn-collapse"
         onclick={toggleTemplatesCollapse}
-        title={templatesCollapsed ? $t('expand') : $t('collapse')}
+        aria-label={templatesCollapsed ? $t('expand') : $t('collapse')}
+        data-tooltip={templatesCollapsed ? $t('expand') : $t('collapse')}
       >
         {templatesCollapsed ? `▾ ${$t('expand')}` : `▴ ${$t('collapse')}`}
       </button>
@@ -534,11 +535,11 @@
               <div class="provider-item-top">
                 <div class="provider-brand">
                   <ProviderIcon name={prov.name} baseUrl={prov.base_url} protocol={prov.protocol} size={18} />
-                  <span class="provider-name" title={prov.name}>{prov.name}</span>
+                  <span class="provider-name" data-tooltip={prov.name}>{prov.name}</span>
                 </div>
                 <div class="provider-badges">
                   {#if isSelected}
-                    <span class="badge badge-active" title="Selected">✓</span>
+                    <span class="badge badge-active" aria-label={$t('selected')} data-tooltip={$t('selected')}>✓</span>
                   {/if}
                   <span class="badge badge-secondary">{modelCount} {$t('navCompare') === '对比' ? '模型' : 'models'}</span>
                 </div>
@@ -546,7 +547,7 @@
 
               <div class="provider-item-sub">
                 <span class="protocol-tag">{prov.protocol}</span>
-                <span class="url-text truncate" title={prov.base_url}>{prov.base_url}</span>
+                <span class="url-text truncate" data-tooltip={prov.base_url}>{prov.base_url}</span>
               </div>
 
               <div class="provider-item-actions" role="presentation" onclick={e => e.stopPropagation()}>
@@ -554,18 +555,18 @@
                   class="btn btn-xs btn-outline"
                   onclick={() => testProvider(prov.id)}
                   disabled={pTestingId === prov.id}
-                  title={$t('testConnection')}
+                  data-tooltip={$t('testConnection')}
                 >
                   <Icon name="connection" />
                   {pTestingId === prov.id ? $t('testing') : $t('testConnection')}
                 </button>
-                <button class="btn btn-xs btn-secondary" disabled={isMovingProvider} onclick={() => editProvider(prov)} title={$t('editProvider')}><Icon name="edit" /></button>
-                <button class="btn btn-xs btn-outline-danger" disabled={isMovingProvider} onclick={() => deleteProvider(prov.id)} title={$t('delete')}><Icon name="trash" /></button>
+                <button class="btn btn-xs btn-secondary" disabled={isMovingProvider} onclick={() => editProvider(prov)} aria-label={$t('editProvider')} data-tooltip={$t('editProvider')}><Icon name="edit" /></button>
+                <button class="btn btn-xs btn-outline-danger" disabled={isMovingProvider} onclick={() => deleteProvider(prov.id)} aria-label={$t('delete')} data-tooltip={$t('delete')}><Icon name="trash" /></button>
                 <div class="provider-order-controls">
-                  <button type="button" class="btn-icon" disabled={index === 0 || isMovingProvider} onclick={() => moveProvider(prov.id, 'up')} aria-label={`${$t('moveUp')}: ${prov.name}`} title={$t('moveUp')}>
+                  <button type="button" class="btn-icon" disabled={index === 0 || isMovingProvider} onclick={() => moveProvider(prov.id, 'up')} aria-label={`${$t('moveUp')}: ${prov.name}`} data-tooltip={$t('moveUp')}>
                     <Icon name="up" size={14} />
                   </button>
-                  <button type="button" class="btn-icon" disabled={index === providers.length - 1 || isMovingProvider} onclick={() => moveProvider(prov.id, 'down')} aria-label={`${$t('moveDown')}: ${prov.name}`} title={$t('moveDown')}>
+                  <button type="button" class="btn-icon" disabled={index === providers.length - 1 || isMovingProvider} onclick={() => moveProvider(prov.id, 'down')} aria-label={`${$t('moveDown')}: ${prov.name}`} data-tooltip={$t('moveDown')}>
                     <Icon name="down" size={14} />
                   </button>
                 </div>
@@ -668,7 +669,7 @@
               <div class="model-card">
                 <div class="model-card-header">
                   <div class="model-card-top-row">
-                    <h4 class="model-card-label" title={tgt.label}>{tgt.label}</h4>
+                    <h4 class="model-card-label" data-tooltip={tgt.label}>{tgt.label}</h4>
                     <div class="model-card-actions">
                       <button class="btn btn-xs btn-outline" onclick={() => previewTargetReq(tgt.id)} aria-label={$t('previewBody')} data-tooltip={$t('previewBody')}>
                         <Icon name="code" />
@@ -676,7 +677,7 @@
                       <button class="btn btn-xs btn-secondary" onclick={() => editTarget(tgt)} aria-label={$t('editTarget')} data-tooltip={$t('editTarget')}>
                         <Icon name="edit" />
                       </button>
-                      <button class="btn btn-xs btn-outline-danger" onclick={() => deleteTarget(tgt.id)} aria-label={$t('delete')} data-tooltip={$t('delete')} data-tooltip-pos="top-right">
+                      <button class="btn btn-xs btn-outline-danger" onclick={() => deleteTarget(tgt.id)} aria-label={$t('delete')} data-tooltip={$t('delete')}>
                         <Icon name="trash" />
                       </button>
                     </div>

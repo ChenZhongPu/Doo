@@ -514,7 +514,6 @@
           data-tooltip={maxTargets > 0
             ? $t('maxTargetsTooltip').replace('{max}', String(maxTargets))
             : $t('unlimitedTargetsTooltip')}
-          data-tooltip-pos="bottom"
         >({checkedTargetIds.length}{maxTargets > 0 ? `/${maxTargets}` : ''})</span>
       </h3>
       <a href="#/config" class="link-config">{$t('goToConfig')} →</a>
@@ -541,7 +540,6 @@
                     class="target-item"
                     class:checked={checkedTargetIds.includes(tgt.id)}
                     data-tooltip={getModelTooltip(prov.name, tgt.model_name)}
-                    data-tooltip-pos="bottom"
                   >
                     <input
                       type="checkbox"
@@ -636,7 +634,6 @@
                   disabled={messages.length <= 1 || isRunning}
                   onclick={() => removeMessage(i)}
                   data-tooltip={$t('remove')}
-                  data-tooltip-pos="top-right"
                  aria-label={$t('close')}><Icon name="close" size={14} /></button>
               </div>
             </div>
@@ -665,7 +662,7 @@
             <Icon name="code" /> {$t('previewBody')}
           </button>
 
-          <label class="timeout-label" data-tooltip={$t('timeoutTooltip')} data-tooltip-pos="bottom">
+          <label class="timeout-label" data-tooltip={$t('timeoutTooltip')}>
             <span>{$t('timeoutSec')}:</span>
             <input
               type="number"
@@ -724,7 +721,6 @@
               <div
                 class="card-title-group"
                 data-tooltip={getModelTooltip(prov?.name, tgt.model_name)}
-                data-tooltip-pos="bottom"
               >
                 <div class="card-title-row">
                   {#if prov}
@@ -879,7 +875,7 @@
               </div>
               <div class="metric-item">
                 <span class="metric-label">{$t('metricModel')}</span>
-                <span class="metric-value truncate" title={state.responseModel || ''}>
+                <span class="metric-value truncate" data-tooltip={state.responseModel || ''}>
                   {state.responseModel || '—'}
                 </span>
               </div>
@@ -1015,7 +1011,7 @@
   .models-count-badge {
     display: inline-flex;
     align-items: center;
-    cursor: help;
+    cursor: default;
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -1273,7 +1269,7 @@
     gap: 0.45rem;
     font-size: 0.8rem;
     color: var(--text-muted);
-    cursor: help;
+    cursor: default;
   }
   .input-sm {
     width: 68px;

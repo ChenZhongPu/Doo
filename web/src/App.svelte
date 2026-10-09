@@ -6,6 +6,7 @@
   import Icon from './lib/Icon.svelte';
   import ThemePicker from './lib/ThemePicker.svelte';
   import DialogHost from './lib/DialogHost.svelte';
+  import TooltipHost from './lib/TooltipHost.svelte';
   import { dismissDialogs } from './lib/dialog';
   import Compare from './routes/Compare.svelte';
   import Config from './routes/Config.svelte';
@@ -38,7 +39,7 @@
         <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 6h8c7 0 11 4 11 10s-4 10-11 10H7V6Z" stroke="currentColor" stroke-width="2"/><path d="M12 11h3c4 0 6 2 6 5s-2 5-6 5h-3V11Z" fill="currentColor"/></svg>
         <span class="brand-name">Doo<span class="brand-dot">.</span></span>
       </a>
-      <span class="brand-badge" data-tooltip={`Version: ${healthInfo.version}${healthInfo.git_commit ? '\nCommit: ' + healthInfo.git_commit : ''}${healthInfo.build_time ? '\nBuild: ' + healthInfo.build_time : ''}`} data-tooltip-pos="bottom">v{healthInfo.version}</span>
+      <span class="brand-badge" data-tooltip={`Version: ${healthInfo.version}${healthInfo.git_commit ? '\nCommit: ' + healthInfo.git_commit : ''}${healthInfo.build_time ? '\nBuild: ' + healthInfo.build_time : ''}`}>v{healthInfo.version}</span>
     </div>
     <nav class="nav-center" aria-label={$currentLanguage === 'zh' ? '主导航' : 'Main navigation'}>
       <a href="#/" class="nav-link" class:active={currentRoute === 'compare'} aria-current={currentRoute === 'compare' ? 'page' : undefined}><Icon name="compare" /><span>{$t('navCompare')}</span></a>
@@ -52,6 +53,7 @@
   </div>
   <ThemePicker />
   <DialogHost />
+  <TooltipHost />
 </div>
 
 <style>
@@ -275,99 +277,6 @@
   }
   :global(.markdown-body p) {
     margin: 0.5rem 0;
-  }
-
-  /* Global Tooltip: Elegant frosted glass */
-  :global([data-tooltip]) {
-    position: relative;
-  }
-  :global([data-tooltip]::before) {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%) translateY(1px);
-    border: 5px solid transparent;
-    border-top-color: var(--bg-card);
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    z-index: 10000;
-  }
-  :global([data-tooltip]::after) {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%) translateY(2px);
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: var(--text-main);
-    font-size: 0.72rem;
-    font-weight: 500;
-    line-height: 1.38;
-    white-space: pre-line;
-    max-width: 320px;
-    width: max-content;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    z-index: 10000;
-    border: 1px solid var(--bg-hover);
-    box-shadow: none;
-    text-align: left;
-  }
-  :global([data-tooltip]:hover::before) {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-  }
-  :global([data-tooltip]:hover::after) {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-  }
-  /* Optional bottom positioning for navbar elements */
-  :global([data-tooltip-pos="bottom"]::before) {
-    bottom: auto;
-    top: 100%;
-    transform: translateX(-50%) translateY(-1px);
-    border-top-color: transparent;
-    border-bottom-color: var(--bg-card);
-  }
-  :global([data-tooltip-pos="bottom"]::after) {
-    bottom: auto;
-    top: calc(100% + 5px);
-    transform: translateX(-50%) translateY(-2px);
-    white-space: pre-line;
-  }
-  :global([data-tooltip-pos="bottom"]:hover::before) {
-    transform: translateX(-50%) translateY(0);
-  }
-  :global([data-tooltip-pos="bottom"]:hover::after) {
-    transform: translateX(-50%) translateY(0);
-  }
-  /* Optional right aligned positioning for right-edge buttons */
-  :global([data-tooltip-pos="top-right"]::after) {
-    left: auto;
-    right: 0;
-    transform: translateY(2px);
-  }
-  :global([data-tooltip-pos="top-right"]::before) {
-    left: auto;
-    right: 8px;
-    transform: translateY(1px);
-  }
-  :global([data-tooltip-pos="top-right"]:hover::after) {
-    transform: translateY(0);
-  }
-  :global([data-tooltip-pos="top-right"]:hover::before) {
-    transform: translateY(0);
   }
 
   :global(.btn-primary:hover:not(:disabled)) { background: var(--bg-primary-button-hover); }

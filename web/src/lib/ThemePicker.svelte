@@ -20,7 +20,7 @@
 <svelte:window onclick={event => { if (picker?.open && event.target instanceof Node && !picker.contains(event.target)) picker.open = false; }} onkeydown={event => { if (event.key === 'Escape' && picker?.open) { picker.open = false; trigger.focus(); } }} />
 
 <details class="theme-picker" bind:this={picker}>
-  <summary bind:this={trigger} aria-label={$t('appearance')} title={$t('appearance')}>
+  <summary bind:this={trigger} aria-label={$t('appearance')} data-tooltip={$t('appearance')}>
     <Icon name={$currentTheme === 'system' ? 'monitor' : $currentTheme === 'dark' ? 'moon' : 'sun'} size={17} />
     <span>{$t('appearance')}</span>
     <Icon name="chevron" size={13} />
