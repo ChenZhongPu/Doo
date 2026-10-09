@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -88,7 +89,7 @@ func TestAPI_PreviewAndValidation(t *testing.T) {
 		ProviderID: pID,
 		Label:      "gpt-test",
 		ModelName:  "gpt-4o",
-		Core: store.TargetRecord{}.Core,
+		Core:       store.TargetRecord{}.Core,
 	})
 	if err != nil {
 		t.Fatalf("create target: %v", err)
@@ -199,7 +200,15 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	defer st.Close()
 
 	// Upstream mock server
+	upstreamBodies := make(chan string, 1)
 	mockUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		upstreamBodies <- string(body)
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
 		flusher, _ := w.(http.Flusher)
@@ -213,10 +222,11 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	srv.HTTPClient = mockUpstream.Client()
 
 	pID, _ := st.CreateProvider(&store.ProviderRecord{
-		Name:      "openai-mock",
-		Protocol:  "openai_chat",
-		BaseURL:   mockUpstream.URL,
-		APIKeyRef: "env:MOCK_KEY",
+		Name:        "openai-mock",
+		Protocol:    "openai_chat",
+		BaseURL:     mockUpstream.URL,
+		APIKeyRef:   "env:MOCK_KEY",
+		StreamUsage: true, // Previously saved providers must also stop injecting options.
 	})
 	tgtID, _ := st.CreateTarget(&store.TargetRecord{
 		ProviderID: pID,
@@ -225,6 +235,20 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	})
 
 	t.Setenv("MOCK_KEY", "sk-mock-12345")
+	previewReq := httptest.NewRequest("POST", "/api/preview", strings.NewReader(fmt.Sprintf(`{"target_id":%d,"input":{"messages":[{"role":"user","content":"hi"}]}}`, tgtID)))
+	previewReq.Host = "127.0.0.1:8787"
+	previewW := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(previewW, previewReq)
+	if previewW.Code != http.StatusOK {
+		t.Fatalf("preview failed: %s", previewW.Body.String())
+	}
+	var preview PreviewResponse
+	if err := json.Unmarshal(previewW.Body.Bytes(), &preview); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(preview.Body, "stream_options") {
+		t.Fatalf("preview includes automatic options: %s", preview.Body)
+	}
 
 	runPayload := fmt.Sprintf(`{
 		"target_ids": [%d],
@@ -241,6 +265,14 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	select {
+	case upstreamBody := <-upstreamBodies:
+		if upstreamBody != preview.Body {
+			t.Fatalf("actual request differs from preview: %s vs %s", upstreamBody, preview.Body)
+		}
+	default:
+		t.Fatal("upstream request was not sent")
 	}
 
 	body := w.Body.String()
@@ -278,6 +310,16 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	if !strings.Contains(callRaw.ResponseRaw, "Hello world!") {
 		t.Errorf("response raw missing content, got: %s", callRaw.ResponseRaw)
 	}
+	if callRaw.RequestJSON != preview.Body {
+		t.Fatalf("saved request differs from preview: %s", callRaw.RequestJSON)
+	}
+	detail, err := st.GetRun(runs[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.Calls[0].PromptTokens == nil || *detail.Calls[0].PromptTokens != 5 || detail.Calls[0].CompletionTokens == nil || *detail.Calls[0].CompletionTokens != 10 {
+		t.Fatal("upstream usage was not recorded")
+	}
 
 	// Test GET /api/calls/{id}/export?format=curl
 	exportReq := httptest.NewRequest("GET", fmt.Sprintf("/api/calls/%d/export?format=curl", callID), nil)
@@ -290,6 +332,9 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	}
 	if !strings.Contains(exportW.Body.String(), "curl -N -X POST") {
 		t.Errorf("curl export mismatch: %s", exportW.Body.String())
+	}
+	if strings.Contains(exportW.Body.String(), "stream_options") {
+		t.Fatal("export includes automatic stream_options")
 	}
 }
 
@@ -376,4 +421,3 @@ func TestAPI_FetchProviderModels(t *testing.T) {
 		t.Errorf("unexpected models: %v", res.Models)
 	}
 }
-

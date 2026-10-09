@@ -2,11 +2,14 @@
   import { onMount, onDestroy } from 'svelte';
   import Markdown from '../lib/Markdown.svelte';
   import MessageActions from '../lib/MessageActions.svelte';
+  import RunMetrics from '../lib/RunMetrics.svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
   import { notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
+  import PythonLogo from '../lib/PythonLogo.svelte';
+  import { formatJSON } from '../lib/format';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { Provider, Target, Message, CallRaw } from '../lib/types';
 
@@ -834,7 +837,7 @@
                 {#if state.loadingRaw}
                   <div class="loading-state">{$t('loadingRaw')}</div>
                 {:else if state.raw}
-                  <pre class="pre-raw">{state.raw.request_json}</pre>
+                  <pre class="pre-raw">{formatJSON(state.raw.request_json)}</pre>
                 {/if}
               {:else if state.activeTab === 'response'}
                 {#if state.loadingRaw}
@@ -846,7 +849,7 @@
             </div>
 
             <!-- Card Bottom Metrics -->
-            <div class="card-metrics">
+            <RunMetrics>
               <div class="metric-item">
                 <span class="metric-label">{$t('metricTTFT')}</span>
                 <span class="metric-value">{formatMs(state.metrics?.first_token_ms)}</span>
@@ -879,7 +882,7 @@
                   {state.responseModel || '—'}
                 </span>
               </div>
-            </div>
+            </RunMetrics>
 
             <!-- Card Actions -->
             <div class="card-footer">
@@ -905,7 +908,7 @@
                   class="btn-footer"
                   onclick={() => openExport(state.callId!, 'python')}
                 >
-                  <Icon name="code" /> {$t('exportPython')}
+                  <PythonLogo /> {$t('exportPython')}
                 </button>
               {/if}
             </div>
@@ -931,7 +934,7 @@
             <div class="preview-sub">Headers:</div>
             <pre class="code-preview">{JSON.stringify(item.headers, null, 2)}</pre>
             <div class="preview-sub">Body:</div>
-            <pre class="code-preview">{JSON.stringify(JSON.parse(item.body), null, 2)}</pre>
+            <pre class="code-preview">{formatJSON(item.body)}</pre>
           </div>
         {/each}
       </div>
@@ -1395,7 +1398,7 @@
 
   .card-body {
     flex: 1;
-    padding: 1rem 1.1rem;
+    padding: 20px 20px 24px;
     min-height: 220px;
     max-height: 520px;
     overflow-y: auto;
@@ -1468,39 +1471,11 @@
     line-height: 1.45;
   }
 
-  .card-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.6rem;
-    padding: 0.7rem 1rem;
-    background: var(--bg-card-metrics);
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-  }
-  .metric-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-  .metric-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .metric-value {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-main);
-    font-variant-numeric: tabular-nums;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-
   .card-footer {
     display: flex;
     gap: 0.5rem;
-    padding: 0.45rem 1rem;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
     background: var(--bg-card-header);
   }
   .btn-footer {
@@ -1621,7 +1596,6 @@
   .controls-bar { gap: 12px; flex-wrap: wrap; }
   .controls-left { flex-wrap: wrap; }
   .card-tabs { flex-wrap: wrap; }
-  .metric-item { min-width: 0; }
   .modal-dialog { box-shadow: var(--shadow-menu); }
-  @media (max-width: 600px) { .prompt-box { padding: 16px; } .card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .prompt-box { padding: 16px; } }
 </style>

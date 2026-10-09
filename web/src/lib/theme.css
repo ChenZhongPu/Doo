@@ -4,7 +4,7 @@
   --bg-card: #ffffff;
   --bg-card-header: #fff;
   --bg-card-tabs: #fafbf8;
-  --bg-card-metrics: #f8f9f6;
+  --bg-card-metrics: #f0f2ed;
   --bg-item: #f4f5f1;
   --bg-selected: #edf3ed;
   --bg-input: #fafbf8;
@@ -54,7 +54,7 @@
   --bg-card: #262c36;
   --bg-card-header: #262c36;
   --bg-card-tabs: #212830;
-  --bg-card-metrics: #212830;
+  --bg-card-metrics: #1c222a;
   --bg-item: #2a313c;
   --bg-selected: #4184e41a;
   --bg-input: #1c222a;

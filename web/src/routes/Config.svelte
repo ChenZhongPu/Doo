@@ -170,7 +170,6 @@
       protocol: pProtocol,
       base_url: pBaseUrl.trim(),
       headers: parsedHeaders,
-      stream_usage: pProtocol === 'openai_chat',
     };
 
     if (pApiKey.trim()) {

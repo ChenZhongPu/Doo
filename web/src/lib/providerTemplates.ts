@@ -13,7 +13,6 @@ export interface ProviderTemplate {
   docUrl?: string; // Official provider models documentation URL
   extraDocs?: DocItem[]; // Additional documentation (e.g. llama.cpp for LM Studio)
   headers?: Record<string, string>;
-  streamUsage?: boolean;
 }
 
 export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
@@ -25,7 +24,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.deepseek.com',
     defaultEnv: 'DEEPSEEK_API_KEY',
     docUrl: 'https://api-docs.deepseek.com/',
-    streamUsage: true,
   },
   {
     id: 'qwen',
@@ -35,7 +33,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     defaultEnv: 'DASHSCOPE_API_KEY',
     docUrl: 'https://help.aliyun.com/zh/model-studio/getting-started/models',
-    streamUsage: true,
   },
   {
     id: 'openrouter',
@@ -49,7 +46,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
       'HTTP-Referer': 'http://localhost:8787',
       'X-Title': 'Doo',
     },
-    streamUsage: true,
   },
   {
     id: 'glm',
@@ -59,7 +55,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     defaultEnv: 'ZHIPU_API_KEY',
     docUrl: 'https://open.bigmodel.cn/dev/api',
-    streamUsage: true,
   },
   {
     id: 'openai',
@@ -69,7 +64,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.openai.com/v1',
     defaultEnv: 'OPENAI_API_KEY',
     docUrl: 'https://platform.openai.com/docs/models',
-    streamUsage: true,
   },
   {
     id: 'anthropic',
@@ -79,7 +73,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.anthropic.com/v1',
     defaultEnv: 'ANTHROPIC_API_KEY',
     docUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
-    streamUsage: false,
   },
   {
     id: 'siliconflow',
@@ -89,7 +82,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.siliconflow.cn/v1',
     defaultEnv: 'SILICONFLOW_API_KEY',
     docUrl: 'https://docs.siliconflow.cn/docs/model-names',
-    streamUsage: true,
   },
   {
     id: 'groq',
@@ -99,7 +91,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.groq.com/openai/v1',
     defaultEnv: 'GROQ_API_KEY',
     docUrl: 'https://console.groq.com/docs/models',
-    streamUsage: true,
   },
   {
     id: 'moonshot',
@@ -109,7 +100,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'https://api.moonshot.cn/v1',
     defaultEnv: 'MOONSHOT_API_KEY',
     docUrl: 'https://platform.moonshot.cn/docs',
-    streamUsage: true,
   },
   {
     id: 'lmstudio',
@@ -125,7 +115,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
         url: 'https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md',
       },
     ],
-    streamUsage: true,
   },
   {
     id: 'ollama',
@@ -135,7 +124,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     baseUrl: 'http://localhost:11434/v1',
     defaultEnv: 'OLLAMA_API_KEY',
     docUrl: 'https://ollama.com/library',
-    streamUsage: true,
   },
   {
     id: 'custom',
@@ -144,7 +132,6 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     protocol: 'openai_chat',
     baseUrl: '',
     defaultEnv: 'API_KEY',
-    streamUsage: true,
   },
 ];
 

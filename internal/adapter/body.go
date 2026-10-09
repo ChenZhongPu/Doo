@@ -76,12 +76,6 @@ func BuildBody(p Provider, t Target, in Input) ([]byte, error) {
 			field := DetermineMaxTokensField(t.ModelName, t.MaxTokensField)
 			base[field] = *t.Core.MaxTokens
 		}
-		if p.StreamUsage && isStream {
-			base["stream_options"] = map[string]any{
-				"include_usage": true,
-			}
-		}
-
 	case "anthropic":
 		if in.System != "" {
 			base["system"] = in.System
@@ -125,7 +119,6 @@ func BuildBody(p Provider, t Target, in Input) ([]byte, error) {
 	if len(t.Extra) > 0 {
 		deepMerge(base, t.Extra)
 	}
-
 
 	// Step 5: serialization
 	var buf bytes.Buffer

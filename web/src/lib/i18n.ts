@@ -109,6 +109,7 @@ export const translations = {
     close: 'Close',
 
     // Metrics
+    runMetrics: 'Run Metrics',
     metricTTFT: 'First Token',
     metricFirstContent: 'First Content',
     metricTotal: 'Total Time',
@@ -132,7 +133,6 @@ export const translations = {
     apiKeyPlaceholder: 'sk-... (encrypted & stored locally)',
     leaveEmptyToKeep: 'leave empty to keep current key',
     headersJson: 'Custom Headers (JSON)',
-    streamUsageDesc: 'Send stream_options.include_usage (uncheck if provider does not support it)',
     testConnection: 'Test Connection',
     testing: 'Testing...',
     testSuccess: 'Connected',
@@ -294,6 +294,7 @@ export const translations = {
     close: '关闭',
 
     // 指标
+    runMetrics: '运行指标',
     metricTTFT: '首 Token',
     metricFirstContent: '首正文',
     metricTotal: '总耗时',
@@ -317,7 +318,6 @@ export const translations = {
     apiKeyPlaceholder: 'sk-... (本地 AES-256-GCM 加密安全存储)',
     leaveEmptyToKeep: '留空表示保持当前密钥不变',
     headersJson: '额外请求头 (JSON)',
-    streamUsageDesc: '发送 stream_options.include_usage (兼容服务若不支持请取消勾选)',
     testConnection: '测试连接',
     testing: '测试中...',
     testSuccess: '连接成功',

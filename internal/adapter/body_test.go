@@ -8,9 +8,9 @@ import (
 )
 
 func floatPtr(f float64) *float64 { return &f }
-func intPtr(i int) *int             { return &i }
-func int64Ptr(i int64) *int64       { return &i }
-func boolPtr(b bool) *bool          { return &b }
+func intPtr(i int) *int           { return &i }
+func int64Ptr(i int64) *int64     { return &i }
+func boolPtr(b bool) *bool        { return &b }
 
 func rawContent(s string) json.RawMessage {
 	var buf bytes.Buffer
@@ -54,24 +54,49 @@ func TestBuildBody_OpenAI_UnsetFieldsDoNotAppear(t *testing.T) {
 		t.Errorf("expected stream to be true by default, got: %s", bodyStr)
 	}
 	if strings.Contains(bodyStr, "stream_options") {
-		t.Errorf("expected no stream_options when StreamUsage is false, got: %s", bodyStr)
+		t.Errorf("expected no automatic stream_options, got: %s", bodyStr)
 	}
 }
 
-func TestBuildBody_OpenAI_StreamUsage(t *testing.T) {
+func TestBuildBody_OpenAI_DoesNotInjectStreamOptions(t *testing.T) {
 	p := Provider{Protocol: "openai_chat", StreamUsage: true}
-	tgt := Target{
-		ModelName: "gpt-4o",
-	}
 	in := Input{
 		Messages: []Message{{Role: "user", Content: rawContent("hi")}},
 	}
-	body, err := BuildBody(p, tgt, in)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	for _, stream := range []*bool{nil, boolPtr(true), boolPtr(false)} {
+		body, err := BuildBody(p, Target{ModelName: "gpt-4o", Core: CoreParams{Stream: stream}}, in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(body, &parsed); err != nil {
+			t.Fatal(err)
+		}
+		if _, exists := parsed["stream_options"]; exists {
+			t.Fatalf("legacy setting injected stream_options: %s", body)
+		}
+		expectedStream := stream == nil || *stream
+		if parsed["stream"] != expectedStream {
+			t.Fatalf("stream mode changed: %s", body)
+		}
 	}
-	if !strings.Contains(string(body), `"stream_options":{"include_usage":true}`) {
-		t.Errorf("expected stream_options to be present, got: %s", string(body))
+}
+
+func TestBuildBody_OpenAI_ExplicitStreamOptions(t *testing.T) {
+	body, err := BuildBody(Provider{Protocol: "openai_chat", StreamUsage: true}, Target{
+		ModelName: "gpt-4o",
+		Extra:     map[string]any{"stream_options": map[string]any{"custom_option": true}},
+	}, Input{Messages: []Message{{Role: "user", Content: rawContent("hi")}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	opts := parsed["stream_options"].(map[string]any)
+	if len(opts) != 1 || opts["custom_option"] != true {
+		t.Fatalf("extra options changed or include_usage injected: %s", body)
 	}
 }
 
@@ -211,8 +236,8 @@ func TestBuildBody_ExtraOverrideAndNullDelete(t *testing.T) {
 			Temperature: floatPtr(0.5),
 		},
 		Extra: map[string]any{
-			"temperature": 0.9,     // override core
-			"stream":      nil,     // delete stream
+			"temperature": 0.9, // override core
+			"stream":      nil, // delete stream
 			"response_format": map[string]any{
 				"type": "json_object",
 			},

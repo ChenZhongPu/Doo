@@ -32,7 +32,7 @@ type Provider struct {
 	BaseURL     string            `json:"base_url"`
 	APIKeyRef   string            `json:"api_key_ref"`
 	Headers     map[string]string `json:"headers"`
-	StreamUsage bool              `json:"stream_usage"`
+	StreamUsage bool              `json:"stream_usage"` // Legacy setting; request bodies no longer inject stream_options.
 	CreatedAt   int64             `json:"created_at"`
 	UpdatedAt   int64             `json:"updated_at"`
 }

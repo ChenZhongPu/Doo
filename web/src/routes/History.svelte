@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import Markdown from '../lib/Markdown.svelte';
   import HistoryPagination from '../lib/HistoryPagination.svelte';
+  import RunMetrics from '../lib/RunMetrics.svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
   import { confirmAction, notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
+  import { formatJSON } from '../lib/format';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { RunSummary, RunDetail, CallRecord, CallRaw } from '../lib/types';
 
@@ -351,7 +353,7 @@
                         <pre class="pre-reasoning">{call.reasoning_text}</pre>
                       {:else if activeTabs[call.id] === 'request'}
                         {#if rawCalls[call.id]}
-                          <pre class="pre-raw">{rawCalls[call.id].request_json}</pre>
+                          <pre class="pre-raw">{formatJSON(rawCalls[call.id].request_json)}</pre>
                         {:else}
                           <div class="loading-state">{$t('loadingRaw')}</div>
                         {/if}
@@ -364,7 +366,7 @@
                       {/if}
                     </div>
 
-                    <div class="card-metrics">
+                    <RunMetrics>
                       <div class="metric-item">
                         <span class="metric-label">{$t('metricTTFT')}</span>
                         <span class="metric-value">{formatMs(call.first_token_ms)}</span>
@@ -397,7 +399,7 @@
                           {call.response_model || '—'}
                         </span>
                       </div>
-                    </div>
+                    </RunMetrics>
                   </div>
                 {/each}
               </div>
@@ -609,7 +611,7 @@
 
   .card-body {
     flex: 1;
-    padding: 1rem 1.1rem;
+    padding: 20px 20px 24px;
     min-height: 200px;
     max-height: 480px;
     overflow-y: auto;
@@ -648,34 +650,6 @@
     color: var(--text-secondary);
   }
 
-  .card-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.6rem;
-    padding: 0.7rem 1rem;
-    background: var(--bg-card-metrics);
-    border-top: 1px solid var(--border-color);
-  }
-  .metric-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-  .metric-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .metric-value {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-main);
-    font-variant-numeric: tabular-nums;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-
   .truncate {
     white-space: nowrap;
     overflow: hidden;
@@ -687,7 +661,5 @@
   @media (max-width: 1100px) { .run-summary-bar { grid-template-columns: 1fr; gap: 12px; padding: 20px; } }
   .run-prompt { min-width: 0; overflow-wrap: anywhere; }
   .run-actions { flex-wrap: wrap; }
-  .metric-item { min-width: 0; }
   .card-tabs { flex-wrap: wrap; }
-  @media (max-width: 600px) { .card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
