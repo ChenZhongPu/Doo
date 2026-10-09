@@ -193,6 +193,15 @@ export const translations = {
 
     // History Page
     historyTitle: 'Run History',
+    loadHistoryFailed: 'Unable to load history.',
+    deleteAllHistory: 'Delete all',
+    deleteAllHistoryTitle: 'Delete all history?',
+    confirmDeleteAllHistory: 'All run records across every page, including their saved requests, responses, and performance data, will be permanently deleted. Your providers and model presets will be kept.',
+    historyPagination: 'History pagination',
+    historyRange: '{start}–{end} of {total} runs',
+    previousPage: 'Previous',
+    nextPage: 'Next',
+    goToPage: 'Page number',
     noHistory: 'No runs recorded yet.',
     loadToCompare: 'Load into Compare',
     deleteRun: 'Delete Run',
@@ -368,6 +377,15 @@ export const translations = {
 
     // 历史页
     historyTitle: '测试历史',
+    loadHistoryFailed: '无法加载测试历史。',
+    deleteAllHistory: '全部删除',
+    deleteAllHistoryTitle: '删除全部历史？',
+    confirmDeleteAllHistory: '所有分页中的测试记录及其保存的请求、回答和性能数据都将永久删除。服务商和模型预设将保留。',
+    historyPagination: '历史分页',
+    historyRange: '第 {start}–{end} 条，共 {total} 条',
+    previousPage: '上一页',
+    nextPage: '下一页',
+    goToPage: '页码',
     noHistory: '暂无测试历史记录。',
     loadToCompare: '载入到对比页',
     deleteRun: '删除记录',

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Markdown from '../lib/Markdown.svelte';
+  import HistoryPagination from '../lib/HistoryPagination.svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
   import { confirmAction, notify } from '../lib/dialog';
@@ -12,6 +13,9 @@
   let runs: RunSummary[] = $state([]);
   let loading: boolean = $state(true);
   let errorMsg: string = $state('');
+  let page = $state(1);
+  let total = $state(0);
+  let deleting = $state(false);
 
   let expandedRunId: number | null = $state(null);
   let runDetails: Record<number, RunDetail> = $state({});
@@ -19,15 +23,23 @@
   let activeTabs: Record<number, 'output' | 'reasoning' | 'request' | 'response'> = $state({});
   let renderMdMap: Record<number, boolean> = $state({});
 
-  onMount(loadRuns);
+  onMount(() => { void loadRuns(); });
 
-  async function loadRuns() {
+  async function loadRuns(requestedPage = page) {
     loading = true;
     errorMsg = '';
     try {
-      runs = (await api.listRuns(50)) || [];
+      const result = await api.listRunsPage(requestedPage);
+      runs = result.runs;
+      page = result.page;
+      total = result.total;
+      expandedRunId = null;
+      runDetails = {};
+      rawCalls = {};
+      activeTabs = {};
+      renderMdMap = {};
     } catch (e: any) {
-      errorMsg = e.message || 'Failed to load history';
+      errorMsg = e.message || $t('loadHistoryFailed');
     } finally {
       loading = false;
     }
@@ -66,14 +78,32 @@
   }
 
   async function handleDeleteRun(runId: number) {
+    if (deleting || loading) return;
     const run = runs.find(run => run.id === runId);
     if (!await confirmAction({ title: $t('deleteRunTitle'), detail: run ? `${formatTime(run.created_at)} · ${getPromptSnippet(run.input_json)}` : undefined, message: $t('confirmDeleteRun'), destructive: true })) return;
+    deleting = true;
     try {
       await api.deleteRun(runId);
       if (expandedRunId === runId) expandedRunId = null;
       await loadRuns();
     } catch (e: any) {
       notify(e.message || $t('errorOccurred'), $t('deleteFailed'));
+    } finally {
+      deleting = false;
+    }
+  }
+
+  async function handleDeleteAll() {
+    if (deleting || loading || total === 0) return;
+    if (!await confirmAction({ title: $t('deleteAllHistoryTitle'), message: $t('confirmDeleteAllHistory'), destructive: true })) return;
+    deleting = true;
+    try {
+      await api.deleteAllRuns();
+      await loadRuns(1);
+    } catch (e: any) {
+      notify(e.message || $t('errorOccurred'), $t('deleteFailed'));
+    } finally {
+      deleting = false;
     }
   }
 
@@ -161,8 +191,15 @@
 <div class="history-page">
   <div class="history-header page-heading">
     <div><span class="page-eyebrow">ACTIVITY</span><h1>{$t('historyTitle')}</h1><p>{$t('historySubtitle')}</p></div>
-    <button class="btn btn-sm btn-secondary" onclick={loadRuns}><Icon name="refresh" /> {$t('refresh')}</button>
+    <div class="history-header-actions">
+      <button class="btn btn-sm btn-outline-danger" disabled={loading || deleting || total === 0} onclick={handleDeleteAll}><Icon name="trash" /> {$t('deleteAllHistory')}</button>
+      <button class="btn btn-sm btn-secondary" disabled={loading || deleting} onclick={() => loadRuns()}><Icon name="refresh" /> {$t('refresh')}</button>
+    </div>
   </div>
+
+  {#if total > 0}
+    <HistoryPagination {page} {total} disabled={loading || deleting} onchange={loadRuns} />
+  {/if}
 
   {#if errorMsg}
     <div class="alert alert-danger">{errorMsg}</div>
@@ -184,13 +221,16 @@
             role="button"
             tabindex="0"
             onclick={() => toggleExpand(run.id)}
-            onkeydown={e => { if (e.key === 'Enter' || e.key === ' ') toggleExpand(run.id); }}
+            onkeydown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleExpand(run.id); } }}
           >
             <div class="run-meta">
               <span class="run-time">{formatTime(run.created_at)}</span>
-              {#if run.note}
-                <span class="run-note badge badge-secondary">{run.note}</span>
-              {/if}
+              <div class="run-tags">
+                <span class="run-id">#{run.id}</span>
+                {#if run.note}
+                  <span class="run-note badge badge-secondary">{run.note}</span>
+                {/if}
+              </div>
             </div>
 
             <div class="run-prompt">
@@ -215,6 +255,7 @@
               </button>
               <button
                 class="btn btn-xs btn-outline-danger"
+                disabled={deleting}
                 onclick={() => handleDeleteRun(run.id)}
                 aria-label={$t('deleteRun')} data-tooltip={$t('deleteRun')}
               >
@@ -366,6 +407,7 @@
         </div>
       {/each}
     </div>
+    <HistoryPagination {page} {total} disabled={loading || deleting} onchange={loadRuns} />
   {/if}
 </div>
 
@@ -379,7 +421,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
   }
+  .history-header-actions { display: flex; align-items: center; gap: 8px; }
 
   .run-list {
     display: flex;
@@ -428,6 +473,8 @@
   .run-note {
     font-size: 0.72rem;
   }
+  .run-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .run-id { color: var(--text-muted); font-size: 11px; font-family: ui-monospace, monospace; }
 
   .run-prompt {
     font-size: 0.86rem;

@@ -299,11 +299,28 @@ func (s *Server) handleCancelCall(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
+	if raw, exists := r.URL.Query()["page"]; exists {
+		page, err := strconv.ParseInt(raw[0], 10, 64)
+		if err != nil || page < 1 || r.URL.Query().Has("before") {
+			writeError(w, http.StatusBadRequest, "page must be positive and cannot be combined with before")
+			return
+		}
+		result, err := s.Store.ListRunsPage(page)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
 	limit := 50
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
 			limit = parsed
 		}
+	}
+	if limit > store.HistoryPageSize {
+		limit = store.HistoryPageSize
 	}
 	var beforeID int64
 	if b := r.URL.Query().Get("before"); b != "" {
@@ -321,6 +338,20 @@ func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
 		runs = make([]*store.RunSummary, 0)
 	}
 	writeJSON(w, http.StatusOK, runs)
+}
+
+func (s *Server) handleDeleteAllRuns(w http.ResponseWriter, r *http.Request) {
+	// Require an explicit selector so an unqualified request cannot wipe history.
+	if r.URL.RawQuery != "all=true" {
+		writeError(w, http.StatusBadRequest, "use all=true to delete all history")
+		return
+	}
+	count, err := s.Store.DeleteHistory(store.HistoryFilter{All: true}, false)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int64{"deleted": count})
 }
 
 func (s *Server) handleGetRun(w http.ResponseWriter, r *http.Request) {

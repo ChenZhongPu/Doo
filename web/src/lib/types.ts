@@ -102,6 +102,13 @@ export interface RunDetail {
   calls: CallRecord[];
 }
 
+export interface RunPage {
+  runs: RunSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface CallRaw {
   request_json: string;
   request_headers: string;

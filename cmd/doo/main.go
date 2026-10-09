@@ -74,6 +74,18 @@ func printBanner(listenAddr string, maxTargets int, dataDir string) {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "history" {
+		if err := runHistoryCommand(os.Args[2:], os.Stdout, os.Stderr); err != nil && !errors.Is(err, flag.ErrHelp) {
+			fmt.Fprintln(os.Stderr, "doo history:", err)
+			os.Exit(1)
+		}
+		return
+	}
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: doo [options]\n       doo history delete [options]\n\nServer options:")
+		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "\nUse 'doo history delete --help' for history cleanup options.")
+	}
 	var (
 		hostFlag       = flag.String("host", "localhost", "HTTP server listen host")
 		portFlag       = flag.Int("port", 8787, "HTTP server listen port")

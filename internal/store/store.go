@@ -114,6 +114,15 @@ type CallRaw struct {
 }
 
 func Open(dbPath string) (*Store, error) {
+	return open(dbPath, true)
+}
+
+// OpenForMaintenance leaves in-flight calls untouched when another process is serving.
+func OpenForMaintenance(dbPath string) (*Store, error) {
+	return open(dbPath, false)
+}
+
+func open(dbPath string, recoverRunning bool) (*Store, error) {
 	if dbPath != ":memory:" {
 		if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 			return nil, fmt.Errorf("create db dir: %w", err)
@@ -147,9 +156,11 @@ func Open(dbPath string) (*Store, error) {
 	}
 
 	// Startup cleanup: recover running calls to interrupted
-	if _, err := db.Exec("UPDATE calls SET status='error', error='interrupted' WHERE status='running'"); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("recover running calls: %w", err)
+	if recoverRunning {
+		if _, err := db.Exec("UPDATE calls SET status='error', error='interrupted' WHERE status='running'"); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("recover running calls: %w", err)
+		}
 	}
 
 	return s, nil
@@ -744,7 +755,15 @@ func (s *Store) ListRuns(limit int, beforeID int64) ([]*RunSummary, error) {
 		args = []any{limit}
 	}
 
-	rows, err := s.db.Query(query, args...)
+	return listRunSummaries(s.db, query, args...)
+}
+
+type runQuerier interface {
+	Query(string, ...any) (*sql.Rows, error)
+}
+
+func listRunSummaries(db runQuerier, query string, args ...any) ([]*RunSummary, error) {
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -765,12 +784,16 @@ func (s *Store) ListRuns(limit int, beforeID int64) ([]*RunSummary, error) {
 		runIDs = append(runIDs, r.ID)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
 	if len(runIDs) == 0 {
 		return runs, nil
 	}
 
 	// Fetch calls for these runs
-	callRows, err := s.db.Query(`
+	callRows, err := db.Query(`
 		SELECT c.id, c.run_id, c.target_id, c.target_snapshot_json, c.status, c.total_ms,
 		       c.prompt_tokens, c.completion_tokens, c.error
 		FROM calls c
@@ -819,7 +842,7 @@ func (s *Store) ListRuns(limit int, beforeID int64) ([]*RunSummary, error) {
 		}
 	}
 
-	return runs, nil
+	return runs, callRows.Err()
 }
 
 func (s *Store) DeleteRun(id int64) error {

@@ -95,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 
 	// Runs history & calls
 	mux.HandleFunc("GET /api/runs", s.handleListRuns)
+	mux.HandleFunc("DELETE /api/runs", s.handleDeleteAllRuns)
 	mux.HandleFunc("GET /api/runs/{id}", s.handleGetRun)
 	mux.HandleFunc("DELETE /api/runs/{id}", s.handleDeleteRun)
 	mux.HandleFunc("GET /api/calls/{id}/raw", s.handleGetCallRaw)

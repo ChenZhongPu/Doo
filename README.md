@@ -63,3 +63,19 @@ For example, to use another port and data directory:
 | `--max-targets` | `8` | Maximum concurrent targets in comparison (`0` for unlimited) |
 | `--open` | `true` | Automatically open default browser on launch |
 | `--version` | `false` | Print version information and exit |
+
+### Manage Run History
+
+History shows up to 100 runs per page. Use the page controls to browse older records or **Delete all** to clear every page after confirmation.
+
+You can also delete history from the command line without starting the server:
+
+```bash
+./doo history delete --before 2026-10-01 --dry-run
+./doo history delete --before 2026-10-01
+./doo history delete --id 12,15,19
+./doo history delete --keep-last 100
+./doo history delete --all
+```
+
+Choose exactly one deletion option. `--before YYYY-MM-DD` deletes runs created before midnight on that date in your local time zone; it keeps that date and later dates. Run IDs are shown on the cards in History. `--keep-last N` retains the latest N runs by run ID. Add `--dry-run` to preview the matching count, or `--data /path/to/doo-data` to use another data directory. Deleting a run also removes its saved requests, responses, and metrics. Providers, model presets, and credentials are preserved.

@@ -1,4 +1,4 @@
-import type { Provider, Target, Input, RunSummary, RunDetail, CallRaw } from './types';
+import type { Provider, Target, Input, RunSummary, RunDetail, CallRaw, RunPage } from './types';
 
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -87,6 +87,8 @@ export const api = {
     return (await fetchJSON<RunSummary[]>(url)) || [];
   },
   getRun: (id: number) => fetchJSON<RunDetail>(`/api/runs/${id}`),
+  listRunsPage: (page = 1) => fetchJSON<RunPage>(`/api/runs?page=${page}`),
+  deleteAllRuns: () => fetchJSON<{ deleted: number }>('/api/runs?all=true', { method: 'DELETE' }),
   deleteRun: (id: number) => fetchJSON<{ ok: boolean }>(`/api/runs/${id}`, { method: 'DELETE' }),
 
   // Calls
