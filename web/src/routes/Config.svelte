@@ -5,6 +5,8 @@
   import { confirmAction, notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
+  import CodeHighlight from '../lib/CodeHighlight.svelte';
+  import { formatJSON } from '../lib/format';
   import { PROVIDER_TEMPLATES, getProviderDocs, isLocalOrModelsFetchable, resolveMaxTokensField, cleanProviderName, type ProviderTemplate } from '../lib/providerTemplates';
   import type { Provider, Target, CoreParams } from '../lib/types';
 
@@ -979,9 +981,9 @@
       </div>
       <div class="modal-body">
         <div class="preview-sub">Headers:</div>
-        <pre class="code-preview">{JSON.stringify(previewData.headers, null, 2)}</pre>
+        <pre class="code-preview"><CodeHighlight text={JSON.stringify(previewData.headers, null, 2)} language="json" /></pre>
         <div class="preview-sub">Body:</div>
-        <pre class="code-preview">{JSON.stringify(JSON.parse(previewData.body), null, 2)}</pre>
+        <pre class="code-preview"><CodeHighlight text={formatJSON(previewData.body)} language="json" /></pre>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick={() => previewOpen = false}>{$t('close')}</button>

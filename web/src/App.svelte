@@ -17,7 +17,7 @@
     return hash.startsWith('config') ? 'config' : hash.startsWith('history') ? 'history' : 'compare';
   }
   let currentRoute = $state(getHashRoute());
-  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.1.1' });
+  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.1.3' });
   const handleHashChange = () => { dismissDialogs(); currentRoute = getHashRoute(); };
 
   onMount(() => {
@@ -49,7 +49,8 @@
     <div class="nav-right"><button class="lang-toggle" onclick={() => setLanguage($currentLanguage === 'en' ? 'zh' : 'en')} aria-label={$currentLanguage === 'en' ? '切换到中文' : 'Switch to English'}><Icon name="language" /><span>{$currentLanguage === 'en' ? '中文' : 'English'}</span></button></div>
   </header>
   <div class="content-wrapper">
-    {#if currentRoute === 'compare'}<Compare />{:else if currentRoute === 'config'}<Config />{:else}<History />{/if}
+    <div hidden={currentRoute !== 'compare'}><Compare active={currentRoute === 'compare'} /></div>
+    {#if currentRoute === 'config'}<Config />{:else if currentRoute === 'history'}<History />{/if}
   </div>
   <ThemePicker />
   <DialogHost />

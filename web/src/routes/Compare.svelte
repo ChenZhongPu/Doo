@@ -10,8 +10,11 @@
   import Icon from '../lib/Icon.svelte';
   import PythonLogo from '../lib/PythonLogo.svelte';
   import { formatJSON } from '../lib/format';
+  import CodeHighlight from '../lib/CodeHighlight.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { Provider, Target, Message, CallRaw } from '../lib/types';
+
+  let { active = true }: { active?: boolean } = $props();
 
   interface TargetRunState {
     target: Target;
@@ -60,6 +63,9 @@
   let runElapsedMs: number = $state(0);
   let abortController: AbortController | null = null;
   let targetStates: Record<number, TargetRunState> = $state({});
+  const resultTargetIds = $derived(Object.keys(targetStates).length > 0
+    ? Object.values(targetStates).map(state => state.target.id)
+    : checkedTargetIds);
   let generalError: string = $state('');
 
   // Modals
@@ -78,10 +84,11 @@
 
   const STORAGE_TARGETS = 'doo_selected_targets';
   const STORAGE_INPUTS = 'doo_saved_inputs';
+  let initialConfigLoad = true;
 
   onMount(async () => {
-    await loadConfig();
     restoreFromStorage();
+    window.addEventListener('doo-load-run', handleLoadRun as EventListener);
     try {
       const h = await api.getHealth();
       if (typeof h.max_targets === 'number') {
@@ -90,9 +97,17 @@
     } catch {
       // Keep default
     }
+  });
 
-    // Listen for custom event from History page
-    window.addEventListener('doo-load-run', handleLoadRun as EventListener);
+  $effect(() => {
+    if (active || initialConfigLoad) {
+      initialConfigLoad = false;
+      void loadConfig();
+    }
+    if (!active) {
+      previewModalOpen = false;
+      exportModalOpen = false;
+    }
   });
 
   onDestroy(() => {
@@ -119,7 +134,7 @@
 
       // Keep checked targets that still exist
       const validIds = new Set(targets.map(t => t.id));
-      checkedTargetIds = checkedTargetIds.filter(id => validIds.has(id));
+      if (!isRunning) checkedTargetIds = checkedTargetIds.filter(id => validIds.has(id));
       if (checkedTargetIds.length === 0 && targets.length > 0) {
         checkedTargetIds = [targets[0].id];
       }
@@ -162,8 +177,10 @@
   }
 
   function handleLoadRun(e: CustomEvent) {
+    if (isRunning) return;
     const detail = e.detail;
     if (!detail) return;
+    targetStates = {};
     if (detail.input) {
       systemPrompt = detail.input.system || '';
       messages = detail.input.messages || [{ role: 'user', content: '' }];
@@ -378,6 +395,7 @@
       if (animFrameId) cancelAnimationFrame(animFrameId);
       // Flush any leftover deltas
       flushPendingDeltas();
+      checkedTargetIds = checkedTargetIds.filter(id => targets.some(target => target.id === id));
     }
   }
 
@@ -704,9 +722,9 @@
 
     <!-- Results Cards Grid -->
     <section class="results-grid">
-      {#each checkedTargetIds as tId (tId)}
-        {@const tgt = targets.find(t => t.id === tId)}
-        {@const prov = tgt ? providers.find(p => p.id === tgt.provider_id) : undefined}
+      {#each resultTargetIds as tId (tId)}
+        {@const tgt = targetStates[tId]?.target || targets.find(t => t.id === tId)}
+        {@const prov = targetStates[tId]?.provider || (tgt ? providers.find(p => p.id === tgt.provider_id) : undefined)}
         {@const state = targetStates[tId] || {
           target: tgt!,
           provider: prov,
@@ -837,7 +855,7 @@
                 {#if state.loadingRaw}
                   <div class="loading-state">{$t('loadingRaw')}</div>
                 {:else if state.raw}
-                  <pre class="pre-raw">{formatJSON(state.raw.request_json)}</pre>
+                  <pre class="pre-raw"><CodeHighlight text={formatJSON(state.raw.request_json)} language="json" /></pre>
                 {/if}
               {:else if state.activeTab === 'response'}
                 {#if state.loadingRaw}
@@ -932,9 +950,9 @@
           <div class="preview-item">
             <h4>{item.targetLabel}</h4>
             <div class="preview-sub">Headers:</div>
-            <pre class="code-preview">{JSON.stringify(item.headers, null, 2)}</pre>
+            <pre class="code-preview"><CodeHighlight text={JSON.stringify(item.headers, null, 2)} language="json" /></pre>
             <div class="preview-sub">Body:</div>
-            <pre class="code-preview">{formatJSON(item.body)}</pre>
+            <pre class="code-preview"><CodeHighlight text={formatJSON(item.body)} language="json" /></pre>
           </div>
         {/each}
       </div>

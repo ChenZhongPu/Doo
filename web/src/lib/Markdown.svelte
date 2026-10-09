@@ -3,6 +3,7 @@
   import DOMPurify from 'dompurify';
   import { t } from './i18n';
   import { writeClipboard } from './clipboard';
+  import { highlightCode } from './highlight';
 
   let { text }: { text: string } = $props();
   let feedback = $state('');
@@ -29,6 +30,9 @@
       for (const pre of node.querySelectorAll('pre')) {
         const code = pre.querySelector('code');
         if (!code) continue;
+        const language = Array.from(code.classList).find(name => name.startsWith('language-'))?.slice(9) || '';
+        code.innerHTML = DOMPurify.sanitize(highlightCode(code.textContent || '', language));
+        code.classList.add('syntax-code');
         const block = document.createElement('div');
         block.className = 'code-block';
         const toolbar = document.createElement('div');

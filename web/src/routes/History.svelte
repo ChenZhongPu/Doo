@@ -9,6 +9,7 @@
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
   import { formatJSON } from '../lib/format';
+  import CodeHighlight from '../lib/CodeHighlight.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { RunSummary, RunDetail, CallRecord, CallRaw } from '../lib/types';
 
@@ -353,7 +354,7 @@
                         <pre class="pre-reasoning">{call.reasoning_text}</pre>
                       {:else if activeTabs[call.id] === 'request'}
                         {#if rawCalls[call.id]}
-                          <pre class="pre-raw">{formatJSON(rawCalls[call.id].request_json)}</pre>
+                          <pre class="pre-raw"><CodeHighlight text={formatJSON(rawCalls[call.id].request_json)} language="json" /></pre>
                         {:else}
                           <div class="loading-state">{$t('loadingRaw')}</div>
                         {/if}
