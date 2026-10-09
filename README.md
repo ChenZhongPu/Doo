@@ -4,6 +4,8 @@ Doo is a local web tool for LLM API pilot studies: trying prompts, models, and r
 
 <p align="center"><em>My three-year-old daughter loves Baby Shark Dance. The “Doo-doo” in the song gave this project its name.</em></p>
 
+![Doo model comparison interface](screenshot.png)
+
 ## Why Doo?
 
 Doo is built for pilot studies: small, exploratory experiments before a full benchmark or evaluation. I want to try a few representative inputs, compare models and parameter settings, and check API behavior before committing to a larger run.
