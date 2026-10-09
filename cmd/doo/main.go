@@ -10,10 +10,8 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -25,7 +23,7 @@ import (
 )
 
 var (
-	version   = "0.1.0"
+	version   = "0.1.1"
 	buildTime = "dev"
 	gitCommit = ""
 )
@@ -181,7 +179,9 @@ func main() {
 					browserURL = fmt.Sprintf("http://localhost:%s", p)
 				}
 			}
-			openBrowser(browserURL)
+			if err := openBrowser(browserURL); err != nil {
+				log.Printf("Could not open the browser: %v. Open %s manually, or use --open=false to disable automatic opening.", err, browserURL)
+			}
 		}()
 	}
 
@@ -222,23 +222,4 @@ func warnIfNotLoopback(addr string) {
 	if host != "127.0.0.1" && host != "localhost" && host != "::1" && host != "[::1]" {
 		log.Printf("⚠️  WARNING: doo is listening on non-loopback address %s. Host and Origin verification are enforced.", addr)
 	}
-}
-
-func openBrowser(url string) {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "rundll32"
-		args = []string{"url.dll,FileProtocolHandler", url}
-	case "darwin":
-		cmd = "open"
-		args = []string{url}
-	default: // linux, bsd, etc.
-		cmd = "xdg-open"
-		args = []string{url}
-	}
-
-	_ = exec.Command(cmd, args...).Start()
 }
