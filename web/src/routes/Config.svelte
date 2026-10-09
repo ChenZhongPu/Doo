@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
+  import { confirmAction, notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
   import { PROVIDER_TEMPLATES, getProviderDocs, isLocalOrModelsFetchable, resolveMaxTokensField, cleanProviderName, type ProviderTemplate } from '../lib/providerTemplates';
@@ -13,6 +14,7 @@
   let errorMsg: string = $state('');
 
   let selectedProviderId: number | null = $state(null);
+  let isMovingProvider = $state(false);
 
   // Provider Form State
   let showProviderModal: boolean = $state(false);
@@ -202,7 +204,7 @@
   }
 
   async function deleteProvider(id: number) {
-    if (!confirm($t('confirmDeleteProvider'))) return;
+    if (!await confirmAction({ title: $t('deleteProviderTitle'), detail: providers.find(p => p.id === id)?.name, message: $t('confirmDeleteProvider'), destructive: true })) return;
     try {
       await api.deleteProvider(id);
       if (selectedProviderId === id) {
@@ -212,6 +214,20 @@
       await loadData();
     } catch (e: any) {
       errorMsg = e.message || 'Failed to delete provider';
+    }
+  }
+
+  async function moveProvider(id: number, direction: 'up' | 'down') {
+    if (isMovingProvider) return;
+    isMovingProvider = true;
+    errorMsg = '';
+    try {
+      const reordered = await api.moveProvider(id, direction);
+      providers = reordered.map(p => ({ ...p, name: cleanProviderName(p.name) }));
+    } catch (e: any) {
+      errorMsg = e.message || $t('moveProviderFailed');
+    } finally {
+      isMovingProvider = false;
     }
   }
 
@@ -400,7 +416,7 @@
   }
 
   async function deleteTarget(id: number) {
-    if (!confirm($t('confirmDeleteTarget'))) return;
+    if (!await confirmAction({ title: $t('deleteTargetTitle'), detail: targets.find(target => target.id === id)?.label, message: $t('confirmDeleteTarget'), destructive: true })) return;
     try {
       await api.deleteTarget(id);
       await loadData();
@@ -426,7 +442,7 @@
       previewData = res;
       previewOpen = true;
     } catch (e: any) {
-      alert(`Preview failed: ${e.message}`);
+      notify(e.message || $t('errorOccurred'), $t('previewFailed'));
     }
   }
 </script>
@@ -499,7 +515,7 @@
         </div>
       {:else}
         <div class="providers-list">
-          {#each providers as prov (prov.id)}
+          {#each providers as prov, index (prov.id)}
             {@const modelCount = targets.filter(t => t.provider_id === prov.id).length}
             {@const isSelected = selectedProviderId === prov.id}
             <div
@@ -508,7 +524,12 @@
               onclick={() => selectedProviderId = prov.id}
               role="button"
               tabindex="0"
-              onkeydown={e => { if (e.key === 'Enter' || e.key === ' ') selectedProviderId = prov.id; }}
+              onkeydown={e => {
+                if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  selectedProviderId = prov.id;
+                }
+              }}
             >
               <div class="provider-item-top">
                 <div class="provider-brand">
@@ -538,8 +559,16 @@
                   <Icon name="connection" />
                   {pTestingId === prov.id ? $t('testing') : $t('testConnection')}
                 </button>
-                <button class="btn btn-xs btn-secondary" onclick={() => editProvider(prov)} title={$t('editProvider')}><Icon name="edit" /></button>
-                <button class="btn btn-xs btn-outline-danger" onclick={() => deleteProvider(prov.id)} title={$t('delete')}><Icon name="trash" /></button>
+                <button class="btn btn-xs btn-secondary" disabled={isMovingProvider} onclick={() => editProvider(prov)} title={$t('editProvider')}><Icon name="edit" /></button>
+                <button class="btn btn-xs btn-outline-danger" disabled={isMovingProvider} onclick={() => deleteProvider(prov.id)} title={$t('delete')}><Icon name="trash" /></button>
+                <div class="provider-order-controls">
+                  <button type="button" class="btn-icon" disabled={index === 0 || isMovingProvider} onclick={() => moveProvider(prov.id, 'up')} aria-label={`${$t('moveUp')}: ${prov.name}`} title={$t('moveUp')}>
+                    <Icon name="up" size={14} />
+                  </button>
+                  <button type="button" class="btn-icon" disabled={index === providers.length - 1 || isMovingProvider} onclick={() => moveProvider(prov.id, 'down')} aria-label={`${$t('moveDown')}: ${prov.name}`} title={$t('moveDown')}>
+                    <Icon name="down" size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           {/each}
@@ -1267,10 +1296,12 @@
   }
   .provider-item-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.35rem;
     margin-top: 0.2rem;
   }
+  .provider-order-controls { display: flex; gap: 0.2rem; margin-left: auto; }
   .empty-inline-notice {
     padding: 1.5rem;
     text-align: center;
@@ -1483,8 +1514,8 @@
     position: fixed;
     inset: 0;
     background: var(--bg-backdrop);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;

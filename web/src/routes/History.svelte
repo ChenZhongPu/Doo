@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { marked } from 'marked';
-  import DOMPurify from 'dompurify';
+  import Markdown from '../lib/Markdown.svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
+  import { confirmAction, notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
@@ -49,7 +49,7 @@
           renderMdMap[c.id] = true;
         }
       } catch (e: any) {
-        alert(`Failed to load run details: ${e.message}`);
+        notify(e.message || $t('errorOccurred'), $t('loadDetailsFailed'));
       }
     }
   }
@@ -66,13 +66,14 @@
   }
 
   async function handleDeleteRun(runId: number) {
-    if (!confirm($t('confirmDeleteRun'))) return;
+    const run = runs.find(run => run.id === runId);
+    if (!await confirmAction({ title: $t('deleteRunTitle'), detail: run ? `${formatTime(run.created_at)} · ${getPromptSnippet(run.input_json)}` : undefined, message: $t('confirmDeleteRun'), destructive: true })) return;
     try {
       await api.deleteRun(runId);
       if (expandedRunId === runId) expandedRunId = null;
       await loadRuns();
     } catch (e: any) {
-      alert(`Delete failed: ${e.message}`);
+      notify(e.message || $t('errorOccurred'), $t('deleteFailed'));
     }
   }
 
@@ -91,7 +92,7 @@
 
       window.location.hash = '#/';
     } catch (e: any) {
-      alert(`Failed to parse run input: ${e.message}`);
+      notify(e.message || $t('errorOccurred'), $t('loadInputFailed'));
     }
   }
 
@@ -120,10 +121,6 @@
     return `${Math.round(ms)}ms`;
   }
 
-  function renderMd(text: string): string {
-    const raw = marked.parse(text, { async: false }) as string;
-    return DOMPurify.sanitize(raw);
-  }
 
   function parseSnapshot(call: CallRecord): { provider?: any; target?: any } {
     try {
@@ -305,7 +302,7 @@
                       {#if activeTabs[call.id] === 'output'}
                         {#if renderMdMap[call.id] ?? true}
                           <div class="markdown-body">
-                            {@html renderMd(call.output_text)}
+                            <Markdown text={call.output_text} />
                           </div>
                         {:else}
                           <pre class="pre-output">{call.output_text}</pre>

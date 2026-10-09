@@ -52,31 +52,31 @@ type TargetRecord struct {
 }
 
 type CallRecord struct {
-	ID                 int64            `json:"id"`
-	RunID              int64            `json:"run_id"`
-	TargetID           *int64           `json:"target_id"`
-	TargetSnapshotJSON string           `json:"target_snapshot_json"`
-	Status             string           `json:"status"` // running, done, error, canceled
-	RequestJSON        string           `json:"request_json"`
-	RequestHeadersJSON string           `json:"request_headers_json"`
-	ResponseRaw        []byte           `json:"-"`
-	ResponseTruncated  bool             `json:"response_truncated"`
-	OutputText         string           `json:"output_text"`
-	ReasoningText      string           `json:"reasoning_text"`
-	FinishReason       *string          `json:"finish_reason"`
-	HTTPStatus         *int             `json:"http_status"`
-	Error              *string          `json:"error"`
-	UsageJSON          *string          `json:"usage_json"`
-	PromptTokens       *int             `json:"prompt_tokens"`
-	CompletionTokens   *int             `json:"completion_tokens"`
-	ReasoningTokens    *int             `json:"reasoning_tokens"`
-	TTFBms             *float64         `json:"ttfb_ms"`
-	FirstTokenMs       *float64         `json:"first_token_ms"`
-	FirstContentMs     *float64         `json:"first_content_ms"`
-	TotalMs            *float64         `json:"total_ms"`
-	ResponseModel      *string          `json:"response_model"`
-	ProviderReqID      *string          `json:"provider_req_id"`
-	StartedAt          int64            `json:"started_at"`
+	ID                 int64    `json:"id"`
+	RunID              int64    `json:"run_id"`
+	TargetID           *int64   `json:"target_id"`
+	TargetSnapshotJSON string   `json:"target_snapshot_json"`
+	Status             string   `json:"status"` // running, done, error, canceled
+	RequestJSON        string   `json:"request_json"`
+	RequestHeadersJSON string   `json:"request_headers_json"`
+	ResponseRaw        []byte   `json:"-"`
+	ResponseTruncated  bool     `json:"response_truncated"`
+	OutputText         string   `json:"output_text"`
+	ReasoningText      string   `json:"reasoning_text"`
+	FinishReason       *string  `json:"finish_reason"`
+	HTTPStatus         *int     `json:"http_status"`
+	Error              *string  `json:"error"`
+	UsageJSON          *string  `json:"usage_json"`
+	PromptTokens       *int     `json:"prompt_tokens"`
+	CompletionTokens   *int     `json:"completion_tokens"`
+	ReasoningTokens    *int     `json:"reasoning_tokens"`
+	TTFBms             *float64 `json:"ttfb_ms"`
+	FirstTokenMs       *float64 `json:"first_token_ms"`
+	FirstContentMs     *float64 `json:"first_content_ms"`
+	TotalMs            *float64 `json:"total_ms"`
+	ResponseModel      *string  `json:"response_model"`
+	ProviderReqID      *string  `json:"provider_req_id"`
+	StartedAt          int64    `json:"started_at"`
 }
 
 type RunSummaryCall struct {
@@ -180,6 +180,24 @@ func (s *Store) migrate() error {
 		}
 	}
 
+	if version < 2 {
+		sqlBytes, err := migrationsFS.ReadFile("migrations/0002_provider_order.sql")
+		if err != nil {
+			return fmt.Errorf("read 0002_provider_order.sql: %w", err)
+		}
+		tx, err := s.db.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err := tx.Exec(string(sqlBytes)); err != nil {
+			return fmt.Errorf("exec 0002_provider_order.sql: %w", err)
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -208,8 +226,8 @@ func (s *Store) CreateProvider(p *ProviderRecord) (int64, error) {
 	}
 
 	res, err := s.db.Exec(`
-		INSERT INTO providers(name, protocol, base_url, api_key_ref, headers_json, stream_usage, created_at, updated_at)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO providers(name, protocol, base_url, api_key_ref, headers_json, stream_usage, created_at, updated_at, sort_order)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM providers))
 	`, p.Name, p.Protocol, p.BaseURL, p.APIKeyRef, headersJSON, streamUsageInt, p.CreatedAt, p.UpdatedAt)
 	if err != nil {
 		return 0, err
@@ -244,7 +262,7 @@ func (s *Store) GetProvider(id int64) (*ProviderRecord, error) {
 func (s *Store) ListProviders() ([]*ProviderRecord, error) {
 	rows, err := s.db.Query(`
 		SELECT id, name, protocol, base_url, api_key_ref, headers_json, stream_usage, created_at, updated_at
-		FROM providers ORDER BY id ASC
+		FROM providers ORDER BY sort_order ASC, id ASC
 	`)
 	if err != nil {
 		return nil, err
@@ -263,6 +281,43 @@ func (s *Store) ListProviders() ([]*ProviderRecord, error) {
 		list = append(list, &p)
 	}
 	return list, rows.Err()
+}
+
+// MoveProvider swaps a provider with its immediate neighbor in display order.
+// A transaction keeps the swap atomic, and writes are serialized with CRUD.
+func (s *Store) MoveProvider(id int64, direction string) error {
+	if direction != "up" && direction != "down" {
+		return fmt.Errorf("direction must be up or down")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var position int64
+	if err := tx.QueryRow("SELECT sort_order FROM providers WHERE id = ?", id).Scan(&position); err != nil {
+		return err
+	}
+	query := "SELECT id, sort_order FROM providers WHERE sort_order < ? ORDER BY sort_order DESC, id DESC LIMIT 1"
+	if direction == "down" {
+		query = "SELECT id, sort_order FROM providers WHERE sort_order > ? ORDER BY sort_order ASC, id ASC LIMIT 1"
+	}
+	var neighborID, neighborPosition int64
+	if err := tx.QueryRow(query, position).Scan(&neighborID, &neighborPosition); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil // Already at the corresponding end of the list.
+		}
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE providers SET sort_order = CASE id WHEN ? THEN ? ELSE ? END WHERE id IN (?, ?)`,
+		id, neighborPosition, position, id, neighborID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *Store) UpdateProvider(p *ProviderRecord) error {
@@ -719,7 +774,7 @@ func (s *Store) ListRuns(limit int, beforeID int64) ([]*RunSummary, error) {
 		SELECT c.id, c.run_id, c.target_id, c.target_snapshot_json, c.status, c.total_ms,
 		       c.prompt_tokens, c.completion_tokens, c.error
 		FROM calls c
-		WHERE c.run_id IN (` + makePlaceholders(len(runIDs)) + `)
+		WHERE c.run_id IN (`+makePlaceholders(len(runIDs))+`)
 		ORDER BY c.id ASC
 	`, toAnySlice(runIDs)...)
 	if err != nil {

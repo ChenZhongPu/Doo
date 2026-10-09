@@ -33,6 +33,9 @@
   --border-success-subtle: #cedfcf;
   --color-danger: #b0473e;
   --color-danger-light: #b0473e;
+  --bg-danger-button: #b0473e;
+  --bg-danger-button-hover: #943b33;
+  --color-on-danger: #ffffff;
   --bg-danger-subtle: #fcf0ed;
   --border-danger-subtle: #efd5ce;
   --color-warning: #956923;
@@ -80,6 +83,9 @@
   --border-success-subtle: #46954a66;
   --color-danger: #f47067;
   --color-danger-light: #f47067;
+  --bg-danger-button: #b62324;
+  --bg-danger-button-hover: #a51d20;
+  --color-on-danger: #ffffff;
   --bg-danger-subtle: #e5534b1a;
   --border-danger-subtle: #e5534b66;
   --color-warning: #daaa3f;

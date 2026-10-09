@@ -198,7 +198,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 	// Step 4: Run calls concurrently
 	timeoutS := req.TimeoutS
 	if timeoutS <= 0 {
-		timeoutS = 300
+		timeoutS = 60
 	}
 
 	runCtx, cancelAll := context.WithCancel(r.Context())

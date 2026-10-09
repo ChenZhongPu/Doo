@@ -5,6 +5,8 @@
   import { api } from './lib/api';
   import Icon from './lib/Icon.svelte';
   import ThemePicker from './lib/ThemePicker.svelte';
+  import DialogHost from './lib/DialogHost.svelte';
+  import { dismissDialogs } from './lib/dialog';
   import Compare from './routes/Compare.svelte';
   import Config from './routes/Config.svelte';
   import History from './routes/History.svelte';
@@ -15,7 +17,7 @@
   }
   let currentRoute = $state(getHashRoute());
   let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.1.1' });
-  const handleHashChange = () => { currentRoute = getHashRoute(); };
+  const handleHashChange = () => { dismissDialogs(); currentRoute = getHashRoute(); };
 
   onMount(() => {
     const cleanupTheme = initializeTheme();
@@ -49,6 +51,7 @@
     {#if currentRoute === 'compare'}<Compare />{:else if currentRoute === 'config'}<Config />{:else}<History />{/if}
   </div>
   <ThemePicker />
+  <DialogHost />
 </div>
 
 <style>

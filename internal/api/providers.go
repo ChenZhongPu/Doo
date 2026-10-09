@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -64,6 +66,34 @@ func (s *Server) handleListProviders(w http.ResponseWriter, r *http.Request) {
 		res = append(res, toProviderResponse(p))
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) handleMoveProvider(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid provider id")
+		return
+	}
+	var payload struct {
+		Direction string `json:"direction"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if payload.Direction != "up" && payload.Direction != "down" {
+		writeError(w, http.StatusBadRequest, "direction must be up or down")
+		return
+	}
+	if err := s.Store.MoveProvider(id, payload.Direction); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "provider not found")
+		} else {
+			writeError(w, http.StatusInternalServerError, "could not move provider")
+		}
+		return
+	}
+	s.handleListProviders(w, r)
 }
 
 func (s *Server) handleCreateProvider(w http.ResponseWriter, r *http.Request) {
@@ -516,4 +546,3 @@ func extractModelNames(v any) []string {
 	sort.Strings(results)
 	return results
 }
-

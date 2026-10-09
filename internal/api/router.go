@@ -22,8 +22,8 @@ type Server struct {
 	Clock      adapter.Clock
 	HTTPClient *http.Client
 
-	cancelMu   sync.Mutex
-	cancelMap  map[int64]context.CancelFunc
+	cancelMu  sync.Mutex
+	cancelMap map[int64]context.CancelFunc
 }
 
 func NewServer(s *store.Store, ks *secrets.KeyStore, version, buildTime, gitCommit string, sec SecurityConfig, maxTargets int) *Server {
@@ -76,6 +76,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/providers/{id}", s.handleGetProvider)
 	mux.HandleFunc("PUT /api/providers/{id}", s.handleUpdateProvider)
 	mux.HandleFunc("DELETE /api/providers/{id}", s.handleDeleteProvider)
+	mux.HandleFunc("POST /api/providers/{id}/move", s.handleMoveProvider)
 	mux.HandleFunc("POST /api/providers/{id}/test", s.handleTestProvider)
 	mux.HandleFunc("GET /api/providers/{id}/models", s.handleFetchProviderModels)
 

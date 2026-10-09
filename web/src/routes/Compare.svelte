@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { marked } from 'marked';
-  import DOMPurify from 'dompurify';
+  import Markdown from '../lib/Markdown.svelte';
+  import MessageActions from '../lib/MessageActions.svelte';
   import { api } from '../lib/api';
   import { t } from '../lib/i18n';
+  import { notify } from '../lib/dialog';
   import ProviderIcon from '../lib/ProviderIcon.svelte';
   import Icon from '../lib/Icon.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
@@ -48,7 +49,7 @@
   let messages: Message[] = $state([
     { role: 'user', content: '' }
   ]);
-  let timeoutS: number = $state(300);
+  let timeoutS: number = $state(60);
   let note: string = $state('');
 
   // Execution state
@@ -184,6 +185,11 @@
     saveToStorage();
   }
 
+  function clearMessage(index: number) {
+    messages[index].content = '';
+    saveToStorage();
+  }
+
   function moveMessage(index: number, direction: 'up' | 'down') {
     const newIdx = direction === 'up' ? index - 1 : index + 1;
     if (newIdx < 0 || newIdx >= messages.length) return;
@@ -200,7 +206,7 @@
       checkedTargetIds = checkedTargetIds.filter(x => x !== id);
     } else {
       if (maxTargets > 0 && checkedTargetIds.length >= maxTargets) {
-        alert($t('selectUpToN').replace('{n}', String(maxTargets)));
+        notify($t('selectUpToN').replace('{n}', String(maxTargets)), $t('selectModels'));
         return;
       }
       checkedTargetIds = [...checkedTargetIds, id];
@@ -210,7 +216,7 @@
 
   async function openPreview() {
     if (checkedTargetIds.length === 0) {
-      alert($t('noModelsSelected'));
+      notify($t('noModelsSelected'), $t('selectModels'));
       return;
     }
 
@@ -236,11 +242,11 @@
 
   async function handleSend() {
     if (checkedTargetIds.length === 0) {
-      alert($t('noModelsSelected'));
+      notify($t('noModelsSelected'), $t('selectModels'));
       return;
     }
     if (maxTargets > 0 && checkedTargetIds.length > maxTargets) {
-      alert($t('selectUpToN').replace('{n}', String(maxTargets)));
+      notify($t('selectUpToN').replace('{n}', String(maxTargets)), $t('selectModels'));
       return;
     }
 
@@ -460,7 +466,7 @@
       exportCopied = false;
       exportModalOpen = true;
     } catch (e: any) {
-      alert(`Export failed: ${e.message}`);
+      notify(e.message || $t('errorOccurred'), $t('exportFailed'));
     }
   }
 
@@ -470,10 +476,6 @@
     setTimeout(() => { exportCopied = false; }, 2000);
   }
 
-  function renderMd(text: string): string {
-    const raw = marked.parse(text, { async: false }) as string;
-    return DOMPurify.sanitize(raw);
-  }
 
   function calcSpeed(state: TargetRunState): string {
     const comp = state.usage?.completion_tokens;
@@ -613,6 +615,7 @@
               </select>
 
               <div class="row-actions">
+                <MessageActions text={msg.content} onclear={() => clearMessage(i)} disabled={isRunning} />
                 <button
                   type="button"
                   class="btn-icon"
@@ -644,7 +647,7 @@
               bind:value={msg.content}
               onchange={saveToStorage}
               disabled={isRunning}
-              rows="3"
+              rows="8"
             ></textarea>
           </div>
         {/each}
@@ -816,7 +819,7 @@
                 {#if state.renderMarkdown}
                   <div class="markdown-body">
                     {#if state.output}
-                      {@html renderMd(state.output)}
+                      <Markdown text={state.output} />
                       {#if state.status === 'running'}
                         <span class="streaming-cursor">▊</span>
                       {/if}
@@ -1525,8 +1528,8 @@
     position: fixed;
     inset: 0;
     background: var(--bg-backdrop);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;

@@ -37,6 +37,10 @@ export const api = {
     fetchJSON<Provider>(`/api/providers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProvider: (id: number) =>
     fetchJSON<{ ok: boolean }>(`/api/providers/${id}`, { method: 'DELETE' }),
+  moveProvider: (id: number, direction: 'up' | 'down') =>
+    fetchJSON<Provider[]>(`/api/providers/${id}/move`, {
+      method: 'POST', body: JSON.stringify({ direction }),
+    }),
   testProvider: (id: number, modelName?: string) =>
     fetchJSON<{ ok: boolean; http_status: number; total_ms: number; error?: string }>(
       `/api/providers/${id}/test`,
