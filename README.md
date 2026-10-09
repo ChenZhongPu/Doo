@@ -1,53 +1,60 @@
-# doo 🚀
+# Doo
 
-A lightweight, single-binary, local web tool for **LLM API single-input testing and benchmark pilot studies**.
+Doo is a local web tool for LLM API pilot studies: trying prompts, models, and request settings before running a larger evaluation.
 
-Before running expensive batch benchmarks or dataset evaluations, `doo` allows you to configure multiple LLM providers and model presets, send a single prompt across several targets in parallel, inspect real-time streaming output side-by-side, analyze latency and throughput metrics (TTFT, tokens/s, finish reason), and export reproducible curl/Python snippets.
+<p align="center"><em>My three-year-old daughter loves Baby Shark Dance. The “Doo-doo” in the song gave this project its name.</em></p>
 
----
+## Why Doo?
 
-## ✨ Features
+Doo is built for pilot studies: small, exploratory experiments before a full benchmark or evaluation. I want to try a few representative inputs, compare models and parameter settings, and check API behavior before committing to a larger run.
 
-- **Multi-Target Parallel Comparison**: Send the same system prompt and multi-turn messages to up to 8 targets simultaneously.
-- **Side-by-Side Streaming**: Live streaming output with reasoning/thinking trace visibility, plain text or Markdown rendering.
-- **Accurate Latency & Throughput Metrics**: Measures Time-to-First-Token (TTFT), First-Content latency, total time, prompt/completion/reasoning tokens, and tokens/second.
-- **Exact Byte-Level Inspector**: View raw request payloads and raw upstream SSE streams.
-- **Lossless Export to curl & Python**: Export calls directly into reproducible `curl` commands (with heredoc `--data-binary`) and `httpx` Python scripts.
-- **Internationalization (i18n)**: Built-in bilingual UI (English and Chinese, default English), toggleable at any time and saved in local storage.
-- **Themes & Appearance**: Light, dark, and system themes with a persistent appearance selector.
-- **Secure Key Management**: Supports referencing environment variables (`env:VAR_NAME`) or locally encrypted API keys (AES-256-GCM via `master.key`). Keys are never returned in plain text or logged.
-- **Single Self-Contained Binary**: Zero CGO dependencies (`CGO_ENABLED=0`), embedded SQLite and embedded web frontend, binary size < 20 MB.
+[Cherry Studio](https://www.cherryai.com/docs/en/cherrystudio/preview/) is aimed at using LLMs for real work. For my own work, I prefer tools such as Codex and Claude Code. I built Doo for the earlier stage, when I'm still figuring out which model to use, how to call it, and what to measure.
 
----
+In Doo, I can send the same input to several model presets, inspect requests and responses, and compare latency and token usage alongside the answers. Once a configuration works, I can export the request as curl or Python and take it into an experiment script. The goal is to catch problems and narrow down choices while the experiment is still small.
 
-## 🚀 Quick Start
+## Quick Start
+
+### Download a Release
+
+The easiest way to get started is to download a prebuilt binary from the [latest release](https://github.com/ChenZhongPu/Doo/releases/latest). Choose the archive for your operating system and processor.
+
+Extract the archive and open a terminal in the extracted folder. On macOS or Linux, run:
+
+```bash
+./doo
+```
+
+On Windows, run from PowerShell:
+
+```powershell
+.\doo.exe
+```
+
+Doo opens your browser at [localhost:8787](http://localhost:8787). Add a provider and a model preset under **Config**, then select models and send a prompt under **Compare**. Settings and run history are stored in `~/.doo` by default.
 
 ### Build from Source
 
-Prerequisites: Go ≥ 1.22, Node.js ≥ 18, npm.
+To build it yourself, install Go 1.26 or later, Node.js 18 or later, npm, and Make. From the repository root:
 
 ```bash
-# Build frontend and binary
+npm --prefix web ci
 make all
-
-# The compiled binary will be placed at bin/doo
+./bin/doo
 ```
 
-### Run
+The executable is written to `bin/doo`.
+
+### Command-line Options
+
+For example, to use another port and data directory:
 
 ```bash
-# Start doo with default settings (127.0.0.1:8787)
-./bin/doo
-
-# Or specify a custom address, data directory, and open browser automatically:
-./bin/doo --addr 127.0.0.1:8787 --data ~/.doo --open
+./doo --addr 127.0.0.1:9000 --data ./doo-data
 ```
-
-### CLI Flags
 
 | Flag | Default | Description |
 |---|---|---|
-| `--addr` | `127.0.0.1:8787` | Server listen address (`host:port`) |
+| `--addr` | Unset | Override `--host` and `--port` with a listen address (`host:port`) |
 | `--host` | `localhost` | Server listen host |
 | `--port` | `8787` | Server listen port |
 | `--data` | `~/.doo` | Data directory storing `doo.db` and `master.key` |
