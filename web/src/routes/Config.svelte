@@ -30,7 +30,7 @@
   let pHeadersError: string = $state('');
   let pModalError: string = $state('');
   let pTestingId: number | null = $state(null);
-  let pTestResult: { ok: boolean; status?: number; time?: number; error?: string } | null = $state(null);
+  let pTestResult: { ok: boolean; provider: string; status?: number; time?: number; error?: string; model?: string; reachable?: boolean; mode?: 'query' | 'ping' } | null = $state(null);
 
   // Fetch Models from /v1/models state
   let isFetchingModels: boolean = $state(false);
@@ -233,24 +233,42 @@
   }
 
   async function testProvider(id: number) {
+    const provider = providers.find(p => p.id === id);
+    if (!provider || pTestingId !== null || !canTestProvider(provider)) return;
     pTestingId = id;
     pTestResult = null;
     try {
       const res = await api.testProvider(id);
       pTestResult = {
         ok: res.ok,
+        provider: provider.name,
         status: res.http_status,
         time: res.total_ms,
         error: res.error,
+        model: res.model_name,
+        mode: res.mode,
+        reachable: res.reachable,
       };
     } catch (e: any) {
       pTestResult = {
         ok: false,
+        provider: provider.name,
         error: e.message,
       };
     } finally {
       pTestingId = null;
     }
+  }
+
+  function canTestProvider(provider: Provider) {
+    return provider.test_mode === 'query' || targets.some(t =>
+      t.provider_id === provider.id && t.model_name.trim() !== ''
+    );
+  }
+
+  function testTooltip(provider: Provider) {
+    if (!canTestProvider(provider)) return $t('testModelRequired');
+    return provider.test_mode === 'query' ? $t('testQueryHint') : $t('testPingHint');
   }
 
   async function fetchModelsFromProvider(providerId?: number) {
@@ -552,15 +570,17 @@
               </div>
 
               <div class="provider-item-actions" role="presentation" onclick={e => e.stopPropagation()}>
-                <button
-                  class="btn btn-xs btn-outline"
-                  onclick={() => testProvider(prov.id)}
-                  disabled={pTestingId === prov.id}
-                  data-tooltip={$t('testConnection')}
-                >
-                  <Icon name="connection" />
-                  {pTestingId === prov.id ? $t('testing') : $t('testConnection')}
-                </button>
+                <span class="test-button-wrap" data-tooltip={testTooltip(prov)}>
+                  <button
+                    class="btn btn-xs btn-outline"
+                    onclick={() => testProvider(prov.id)}
+                    disabled={pTestingId !== null || !canTestProvider(prov)}
+                    aria-label={`${$t('testConnection')}: ${prov.name}`}
+                  >
+                    <Icon name="connection" />
+                    {pTestingId === prov.id ? $t('testing') : $t('testConnection')}
+                  </button>
+                </span>
                 <button class="btn btn-xs btn-secondary" disabled={isMovingProvider} onclick={() => editProvider(prov)} aria-label={$t('editProvider')} data-tooltip={$t('editProvider')}><Icon name="edit" /></button>
                 <button class="btn btn-xs btn-outline-danger" disabled={isMovingProvider} onclick={() => deleteProvider(prov.id)} aria-label={$t('delete')} data-tooltip={$t('delete')}><Icon name="trash" /></button>
                 <div class="provider-order-controls">
@@ -579,10 +599,24 @@
 
       {#if pTestResult}
         <div class="test-result-bar" class:success={pTestResult.ok} class:failed={!pTestResult.ok}>
-          <strong>{pTestResult.ok ? `✓ ${$t('testSuccess')}` : `✗ ${$t('testFailed')}`}</strong>
-          {#if pTestResult.time}
+          <div class="test-result-heading">
+            <strong>{pTestResult.ok ? `✓ ${$t('testSuccess')}` : `✗ ${$t('testFailed')}`}</strong>
+            <span>{pTestResult.provider}</span>
+          </div>
+          {#if !pTestResult.ok && pTestResult.reachable}
+            <span>{$t('testServiceReachable')}</span>
+          {/if}
+          <div class="test-result-meta">
+          {#if pTestResult.status}
+            <span>HTTP {pTestResult.status}</span>
+          {/if}
+          {#if pTestResult.mode === 'ping' && pTestResult.model}
+            <span>ping · {pTestResult.model}</span>
+          {/if}
+          {#if pTestResult.time !== undefined}
             <span>({Math.round(pTestResult.time)}ms)</span>
           {/if}
+          </div>
           {#if pTestResult.error}
             <span class="test-err-msg">{pTestResult.error}</span>
           {/if}
@@ -1296,6 +1330,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .test-button-wrap {
+    display: inline-flex;
+  }
+
   .provider-item-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1682,8 +1720,24 @@
     border-radius: 7px;
     font-size: 0.82rem;
     display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    overflow-wrap: anywhere;
+  }
+  .test-result-heading,
+  .test-result-meta {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem 0.65rem;
+  }
+  .test-result-heading strong,
+  .test-result-meta span:first-child,
+  .test-result-meta span:last-child {
+    white-space: nowrap;
+  }
+  .test-result-meta {
+    font-size: 0.75rem;
   }
   .test-result-bar.success {
     background: var(--bg-success-subtle);

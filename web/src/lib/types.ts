@@ -15,6 +15,7 @@ export interface Provider {
   api_key_ref: string;
   headers: Record<string, string>;
   stream_usage: boolean;
+  test_mode: 'query' | 'ping';
   created_at: number;
   updated_at: number;
 }

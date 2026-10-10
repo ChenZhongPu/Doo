@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"doo/internal/adapter"
 	"doo/internal/secrets"
 	"doo/internal/store"
 )
@@ -38,6 +37,7 @@ type ProviderResponse struct {
 	StreamUsage bool              `json:"stream_usage"`
 	CreatedAt   int64             `json:"created_at"`
 	UpdatedAt   int64             `json:"updated_at"`
+	TestMode    string            `json:"test_mode"`
 }
 
 func toProviderResponse(p *store.ProviderRecord) ProviderResponse {
@@ -51,6 +51,7 @@ func toProviderResponse(p *store.ProviderRecord) ProviderResponse {
 		StreamUsage: p.StreamUsage,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
+		TestMode:    providerTestMode(p),
 	}
 }
 
@@ -258,118 +259,6 @@ func (s *Server) handleDeleteProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-}
-
-func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid provider id")
-		return
-	}
-
-	pRec, err := s.Store.GetProvider(id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if pRec == nil {
-		writeError(w, http.StatusNotFound, "provider not found")
-		return
-	}
-
-	var testBody struct {
-		ModelName string `json:"model_name"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&testBody)
-
-	modelName := testBody.ModelName
-	if modelName == "" {
-		// Try to find first target model name for this provider
-		targets, _ := s.Store.ListTargets()
-		for _, tgt := range targets {
-			if tgt.ProviderID == pRec.ID && tgt.ModelName != "" {
-				modelName = tgt.ModelName
-				break
-			}
-		}
-	}
-	if modelName == "" {
-		if pRec.Protocol == "anthropic" {
-			modelName = "claude-3-haiku-20240307"
-		} else {
-			modelName = "gpt-4o-mini"
-		}
-	}
-
-	apiKey, err := s.KeyStore.Resolve(pRec.APIKeyRef)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"ok":          false,
-			"http_status": 0,
-			"total_ms":    0,
-			"error":       fmt.Sprintf("resolve key: %v", err),
-		})
-		return
-	}
-
-	prov := adapter.Provider{
-		ID:          pRec.ID,
-		Name:        pRec.Name,
-		Protocol:    pRec.Protocol,
-		BaseURL:     pRec.BaseURL,
-		APIKeyRef:   pRec.APIKeyRef,
-		Headers:     pRec.Headers,
-		StreamUsage: pRec.StreamUsage,
-	}
-
-	maxTok := 8
-	tgt := adapter.Target{
-		ModelName: modelName,
-		Core: adapter.CoreParams{
-			MaxTokens: &maxTok,
-		},
-	}
-
-	in := adapter.Input{
-		Messages: []adapter.Message{
-			{Role: "user", Content: json.RawMessage(`"ping"`)},
-		},
-	}
-
-	reqBody, err := adapter.BuildBody(prov, tgt, in)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"ok":          false,
-			"http_status": 0,
-			"total_ms":    0,
-			"error":       fmt.Sprintf("build test body: %v", err),
-		})
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	var ad adapter.Adapter
-	if prov.Protocol == "anthropic" {
-		ad = &adapter.AnthropicAdapter{Client: s.HTTPClient, Clock: s.Clock}
-	} else {
-		ad = &adapter.OpenAIChatAdapter{Client: s.HTTPClient, Clock: s.Clock}
-	}
-
-	res := ad.Do(ctx, prov, apiKey, reqBody, nil)
-
-	tot := 0.0
-	if res.Metrics.TotalMs != nil {
-		tot = *res.Metrics.TotalMs
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":          res.Status == "done",
-		"http_status": res.HTTPStatus,
-		"total_ms":    tot,
-		"error":       res.Err,
-	})
 }
 
 func (s *Server) handleFetchProviderModels(w http.ResponseWriter, r *http.Request) {

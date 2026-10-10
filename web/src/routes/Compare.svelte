@@ -11,6 +11,7 @@
   import PythonLogo from '../lib/PythonLogo.svelte';
   import { formatJSON } from '../lib/format';
   import CodeHighlight from '../lib/CodeHighlight.svelte';
+  import WaitingDots from '../lib/WaitingDots.svelte';
   import { cleanProviderName } from '../lib/providerTemplates';
   import type { Provider, Target, Message, CallRaw } from '../lib/types';
 
@@ -841,13 +842,13 @@
                         <span class="streaming-cursor">▊</span>
                       {/if}
                     {:else if state.status === 'running'}
-                      <span class="streaming-indicator">...</span>
+                      <WaitingDots />
                     {:else}
                       <div class="output-empty"><span class="empty-rule"></span><p>{$t('outputPlaceholder')}</p></div>
                     {/if}
                   </div>
                 {:else}
-                  <pre class="pre-output">{state.output}{#if state.status === 'running' && state.output}<span class="streaming-cursor">▊</span>{:else if state.status === 'running'}...{/if}</pre>
+                  <pre class="pre-output">{state.output}{#if state.status === 'running' && state.output}<span class="streaming-cursor">▊</span>{:else if state.status === 'running'}<WaitingDots />{/if}</pre>
                 {/if}
               {:else if state.activeTab === 'reasoning'}
                 <pre class="pre-reasoning">{state.reasoning}</pre>
@@ -1421,11 +1422,6 @@
     max-height: 520px;
     overflow-y: auto;
     line-height: 1.6;
-  }
-
-  .streaming-indicator {
-    color: var(--text-muted);
-    font-style: italic;
   }
 
   .streaming-cursor {

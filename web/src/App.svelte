@@ -17,7 +17,7 @@
     return hash.startsWith('config') ? 'config' : hash.startsWith('history') ? 'history' : 'compare';
   }
   let currentRoute = $state(getHashRoute());
-  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.1.3' });
+  let healthInfo: { version: string; build_time?: string; git_commit?: string } = $state({ version: '0.2.0' });
   const handleHashChange = () => { dismissDialogs(); currentRoute = getHashRoute(); };
 
   onMount(() => {

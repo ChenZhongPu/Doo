@@ -42,7 +42,7 @@ export const api = {
       method: 'POST', body: JSON.stringify({ direction }),
     }),
   testProvider: (id: number, modelName?: string) =>
-    fetchJSON<{ ok: boolean; http_status: number; total_ms: number; error?: string }>(
+    fetchJSON<{ ok: boolean; http_status: number; total_ms: number; mode: 'query' | 'ping'; state: string; reachable: boolean; model_name?: string; error?: string }>(
       `/api/providers/${id}/test`,
       { method: 'POST', body: JSON.stringify({ model_name: modelName }) }
     ),
