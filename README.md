@@ -1,6 +1,8 @@
 # Doo
 
-Doo is a local web tool for LLM API pilot studies: trying prompts, models, and request settings before running a larger evaluation.
+Doo is a local web tool for LLM benchmark pilots: comparing models' capabilities with the same prompts.
+
+It ships as a **single, self-contained binary**, about **12.5 MB on Linux x86-64**, including the web UI and SQLite.
 
 <p align="center"><em>My three-year-old daughter loves Baby Shark Dance. The “Doo-doo” in the song gave this project its name.</em></p>
 
@@ -8,11 +10,11 @@ Doo is a local web tool for LLM API pilot studies: trying prompts, models, and r
 
 ## Why Doo?
 
-Doo is built for pilot studies: small, exploratory experiments before a full benchmark or evaluation. I want to try a few representative inputs, compare models and parameter settings, and check API behavior before committing to a larger run.
+Doo is built for LLM benchmark pilots. Send the same prompt to multiple models and compare their capabilities before running a full benchmark.
 
-[Cherry Studio](https://www.cherryai.com/docs/en/cherrystudio/preview/) is aimed at using LLMs for real work. For my own work, I prefer tools such as Codex and Claude Code. I built Doo for the earlier stage, when I'm still figuring out which model to use, how to call it, and what to measure.
+[Cherry Studio](https://www.cherryai.com/docs/en/cherrystudio/preview/) is aimed at using LLMs for real work. For my own work, I prefer tools such as Codex and Claude Code.
 
-In Doo, I can send the same input to several model presets, inspect requests and responses, and compare latency and token usage alongside the answers. Once a configuration works, I can export the request as curl or Python and take it into an experiment script. The goal is to catch problems and narrow down choices while the experiment is still small.
+Compare responses side by side, inspect requests, and check latency and token usage. Export requests as curl or Python to reuse in benchmark scripts.
 
 ## Quick Start
 
