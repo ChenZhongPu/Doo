@@ -22,6 +22,7 @@
     provider?: Provider;
     callId?: number;
     status: 'idle' | 'running' | 'done' | 'error' | 'canceled';
+    frozen?: boolean;
     output: string;
     reasoning: string;
     activeTab: 'output' | 'reasoning' | 'request' | 'response';
@@ -49,6 +50,22 @@
   let providers: Provider[] = $state([]);
   let targets: Target[] = $state([]);
   let checkedTargetIds: number[] = $state([]);
+  let modelSearch = $state('');
+  let modelSearchInput: HTMLInputElement;
+  let collapsedProviderIds: number[] = $state([]);
+  let searchCollapsedProviderIds: number[] = $state([]);
+  const searchKeywords = $derived(modelSearch.trim().toLowerCase().split(/\s+/).filter(Boolean));
+  const visibleProviderGroups = $derived(providers.map(provider => {
+    const providerModels = targets.filter(target => target.provider_id === provider.id);
+    return {
+      provider,
+      models: providerModels.filter(target => searchKeywords.every(keyword =>
+        `${provider.name} ${target.label} ${target.model_name}`.toLowerCase().includes(keyword)
+      )),
+      selectedCount: providerModels.filter(target => checkedTargetIds.includes(target.id)).length,
+      totalCount: providerModels.length,
+    };
+  }).filter(group => group.models.length > 0));
 
   // Prompt inputs
   let systemPrompt: string = $state('');
@@ -64,9 +81,15 @@
   let runElapsedMs: number = $state(0);
   let abortController: AbortController | null = null;
   let targetStates: Record<number, TargetRunState> = $state({});
-  const resultTargetIds = $derived(Object.keys(targetStates).length > 0
-    ? Object.values(targetStates).map(state => state.target.id)
-    : checkedTargetIds);
+  const runnableTargetIds = $derived(checkedTargetIds.filter(id =>
+    !targetStates[id]?.frozen && targets.some(target => target.id === id)
+  ));
+  const resultTargetIds = $derived([...new Set([
+    ...checkedTargetIds,
+    ...Object.values(targetStates)
+      .filter(state => !targets.some(target => target.id === state.target.id))
+      .map(state => state.target.id),
+  ])]);
   let generalError: string = $state('');
 
   // Modals
@@ -85,6 +108,7 @@
 
   const STORAGE_TARGETS = 'doo_selected_targets';
   const STORAGE_INPUTS = 'doo_saved_inputs';
+  const STORAGE_COLLAPSED_PROVIDERS = 'doo_collapsed_compare_providers';
   let initialConfigLoad = true;
 
   onMount(async () => {
@@ -159,9 +183,41 @@
         if (Array.isArray(inp.messages) && inp.messages.length > 0) messages = inp.messages;
         if (typeof inp.timeoutS === 'number') timeoutS = inp.timeoutS;
       }
+      const savedCollapsed = localStorage.getItem(STORAGE_COLLAPSED_PROVIDERS);
+      if (savedCollapsed) {
+        const ids = JSON.parse(savedCollapsed);
+        if (Array.isArray(ids)) collapsedProviderIds = ids.filter(id => typeof id === 'number');
+      }
     } catch (e) {
       // Ignore
     }
+  }
+
+  function isProviderCollapsed(id: number) {
+    return (searchKeywords.length > 0 ? searchCollapsedProviderIds : collapsedProviderIds).includes(id);
+  }
+
+  function toggleProviderCollapsed(id: number) {
+    if (searchKeywords.length > 0) {
+      searchCollapsedProviderIds = searchCollapsedProviderIds.includes(id)
+        ? searchCollapsedProviderIds.filter(value => value !== id)
+        : [...searchCollapsedProviderIds, id];
+      return;
+    }
+    collapsedProviderIds = collapsedProviderIds.includes(id)
+      ? collapsedProviderIds.filter(value => value !== id)
+      : [...collapsedProviderIds, id];
+    try {
+      localStorage.setItem(STORAGE_COLLAPSED_PROVIDERS, JSON.stringify(collapsedProviderIds));
+    } catch {
+      // Folding remains available when browser storage is unavailable.
+    }
+  }
+
+  function clearModelSearch() {
+    modelSearch = '';
+    searchCollapsedProviderIds = [];
+    modelSearchInput?.focus();
   }
 
   function saveToStorage() {
@@ -223,8 +279,10 @@
   }
 
   function toggleTarget(id: number) {
+    if (isRunning) return;
     if (checkedTargetIds.includes(id)) {
       checkedTargetIds = checkedTargetIds.filter(x => x !== id);
+      if (targetStates[id]) targetStates[id].frozen = false;
     } else {
       if (maxTargets > 0 && checkedTargetIds.length >= maxTargets) {
         notify($t('selectUpToN').replace('{n}', String(maxTargets)), $t('selectModels'));
@@ -235,9 +293,15 @@
     saveToStorage();
   }
 
+  function toggleFrozen(id: number) {
+    const state = targetStates[id];
+    if (isRunning || !checkedTargetIds.includes(id) || !state || state.status === 'running' || (!state.output && !state.reasoning)) return;
+    state.frozen = !state.frozen;
+  }
+
   async function openPreview() {
-    if (checkedTargetIds.length === 0) {
-      notify($t('noModelsSelected'), $t('selectModels'));
+    if (runnableTargetIds.length === 0) {
+      notify(checkedTargetIds.length === 0 ? $t('noModelsSelected') : $t('allModelsFrozen'), $t('selectModels'));
       return;
     }
 
@@ -245,7 +309,7 @@
     previewData = [];
     try {
       const input = { system: systemPrompt, messages };
-      for (const tId of checkedTargetIds) {
+      for (const tId of runnableTargetIds) {
         const tgt = targets.find(t => t.id === tId);
         if (!tgt) continue;
         const res = await api.preview(tId, input);
@@ -262,8 +326,10 @@
   }
 
   async function handleSend() {
-    if (checkedTargetIds.length === 0) {
-      notify($t('noModelsSelected'), $t('selectModels'));
+    if (isRunning) return;
+    const runTargetIds = [...runnableTargetIds];
+    if (runTargetIds.length === 0) {
+      notify(checkedTargetIds.length === 0 ? $t('noModelsSelected') : $t('allModelsFrozen'), $t('selectModels'));
       return;
     }
     if (maxTargets > 0 && checkedTargetIds.length > maxTargets) {
@@ -277,10 +343,10 @@
     const runStartTime = performance.now();
     runElapsedMs = 0;
 
-    // Initialize target states
+    // Preserve cached and frozen results; reset only models included in this run.
     const provMap = new Map(providers.map(p => [p.id, p]));
-    const newStates: Record<number, TargetRunState> = {};
-    for (const tId of checkedTargetIds) {
+    const newStates: Record<number, TargetRunState> = { ...targetStates };
+    for (const tId of runTargetIds) {
       const tgt = targets.find(t => t.id === tId);
       if (!tgt) continue;
       const existing = targetStates[tId];
@@ -342,7 +408,7 @@
     animFrameId = requestAnimationFrame(flushPendingDeltas);
 
     try {
-      const res = await api.startRun(input, checkedTargetIds, timeoutS, note, abortController.signal);
+      const res = await api.startRun(input, runTargetIds, timeoutS, note, abortController.signal);
       if (!res.ok) {
         const errObj = await res.json().catch(() => ({}));
         throw new Error(errObj.error || `Run failed: ${res.status}`);
@@ -437,8 +503,6 @@
           break;
         }
       }
-    } else if (ev.type === 'end') {
-      isRunning = false;
     }
   }
 
@@ -541,23 +605,51 @@
       <a href="#/config" class="link-config">{$t('goToConfig')} →</a>
     </div>
 
+    <div class="model-search">
+      <Icon name="search" size={15} />
+      <input
+        bind:this={modelSearchInput}
+        type="search"
+        bind:value={modelSearch}
+        oninput={() => searchCollapsedProviderIds = []}
+        onkeydown={e => { if (e.key === 'Escape') { e.preventDefault(); clearModelSearch(); } }}
+        placeholder={$t('searchModelsPlaceholder')}
+        aria-label={$t('searchModels')}
+      />
+      {#if modelSearch}
+        <button type="button" class="btn-icon" onclick={clearModelSearch} aria-label={$t('clearModelSearch')} data-tooltip={$t('clearModelSearch')}><Icon name="close" size={13} /></button>
+      {/if}
+    </div>
+
     {#if targets.length === 0}
       <div class="empty-notice">
         <p>{$t('noModelsConfigured')}</p>
         <a href="#/config" class="btn btn-sm btn-primary">{$t('goToConfig')}</a>
       </div>
+    {:else if visibleProviderGroups.length === 0}
+      <div class="empty-notice" role="status"><p>{$t('noMatchingModels')}</p></div>
     {:else}
       <div class="target-list">
-        {#each providers as prov (prov.id)}
-          {@const provModels = targets.filter(t => t.provider_id === prov.id)}
-          {#if provModels.length > 0}
+        {#each visibleProviderGroups as group (group.provider.id)}
+          {@const prov = group.provider}
+          {@const collapsed = isProviderCollapsed(prov.id)}
             <div class="sidebar-prov-group">
-              <div class="sidebar-prov-header">
+              <button
+                type="button"
+                class="sidebar-prov-header"
+                class:collapsed
+                aria-expanded={!collapsed}
+                aria-controls={`compare-provider-models-${prov.id}`}
+                aria-label={`${collapsed ? $t('expand') : $t('collapse')}: ${prov.name}`}
+                onclick={() => toggleProviderCollapsed(prov.id)}
+              >
                 <ProviderIcon name={prov.name} baseUrl={prov.base_url} protocol={prov.protocol} size={15} />
-                <span>{prov.name}</span>
-              </div>
-              <div class="sidebar-prov-models">
-                {#each provModels as tgt (tgt.id)}
+                <span class="provider-group-name" data-tooltip={prov.name}>{prov.name}</span>
+                <span class="provider-model-count">{group.selectedCount}/{group.totalCount}</span>
+                <span class="provider-chevron"><Icon name="chevron" size={13} /></span>
+              </button>
+              <div class="sidebar-prov-models" id={`compare-provider-models-${prov.id}`} hidden={collapsed}>
+                {#each group.models as tgt (tgt.id)}
                   <label
                     class="target-item"
                     class:checked={checkedTargetIds.includes(tgt.id)}
@@ -567,16 +659,21 @@
                       type="checkbox"
                       checked={checkedTargetIds.includes(tgt.id)}
                       disabled={isRunning}
-                      onchange={() => toggleTarget(tgt.id)}
+                      onchange={e => {
+                        toggleTarget(tgt.id);
+                        e.currentTarget.checked = checkedTargetIds.includes(tgt.id);
+                      }}
                     />
                     <div class="target-info">
                       <span class="target-label">{tgt.label}</span>
+                      {#if targetStates[tgt.id]?.frozen}
+                        <span class="frozen-indicator" aria-label={$t('statusFrozen')}><Icon name="lock" size={13} /></span>
+                      {/if}
                     </div>
                   </label>
                 {/each}
               </div>
             </div>
-          {/if}
         {/each}
       </div>
     {/if}
@@ -679,7 +776,7 @@
             type="button"
             class="btn btn-secondary"
             onclick={openPreview}
-            disabled={checkedTargetIds.length === 0}
+            disabled={runnableTargetIds.length === 0}
           >
             <Icon name="code" /> {$t('previewBody')}
           </button>
@@ -708,16 +805,17 @@
               type="button"
               class="btn btn-primary btn-large"
               onclick={handleSend}
-              disabled={checkedTargetIds.length === 0}
+              disabled={runnableTargetIds.length === 0}
+              data-tooltip={checkedTargetIds.length > 0 && runnableTargetIds.length === 0 ? $t('allModelsFrozen') : undefined}
             >
-              <Icon name="send" /> {$t('send')} ({checkedTargetIds.length})
+              <Icon name="send" /> {$t('send')} ({runnableTargetIds.length})
             </button>
           {/if}
         </div>
       </div>
     </section>
 
-    {#if checkedTargetIds.length === 0}
+    {#if resultTargetIds.length === 0}
       <div class="workbench-empty"><Icon name="compare" size={28} /><h3>{$t('compareEmpty')}</h3><p>{$t('compareEmptyHint')}</p></div>
     {/if}
 
@@ -730,6 +828,7 @@
           target: tgt!,
           provider: prov,
           status: 'idle',
+          frozen: false,
           output: '',
           reasoning: '',
           activeTab: 'output',
@@ -737,7 +836,7 @@
         }}
 
         {#if tgt}
-          <div class="card result-card status-{state.status}">
+          <div class="card result-card status-{state.status}" class:frozen={state.frozen} data-target-id={tId}>
             <!-- Card Header -->
             <div class="card-header">
               <div
@@ -753,8 +852,22 @@
               </div>
 
               <div class="card-header-actions">
-                <span class="badge badge-{state.status}">
-                  {#if state.status === 'running'}
+                {#if checkedTargetIds.includes(tId) && (state.output || state.reasoning)}
+                  <button
+                    type="button"
+                    class="btn-icon freeze-button"
+                    class:is-frozen={state.frozen}
+                    disabled={isRunning}
+                    aria-pressed={!!state.frozen}
+                    aria-label={`${state.frozen ? $t('unfreezeOutput') : $t('freezeOutput')}: ${tgt.label}`}
+                    data-tooltip={state.frozen ? $t('unfreezeOutputHint') : $t('freezeOutputHint')}
+                    onclick={() => toggleFrozen(tId)}
+                  ><Icon name={state.frozen ? 'lock' : 'unlock'} size={15} /></button>
+                {/if}
+                <span class="badge badge-{state.frozen ? 'frozen' : state.status}">
+                  {#if state.frozen}
+                    {$t('statusFrozen')}
+                  {:else if state.status === 'running'}
                     {$t('statusRunning')} ({formatElapsedSec(runElapsedMs)})
                   {:else if state.status === 'done'}
                     {$t('statusDone')}
@@ -1074,11 +1187,41 @@
     gap: 0.75rem;
   }
 
+  .model-search {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+    padding: 0.45rem 0.55rem;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+  }
+  .model-search:focus-within {
+    border-color: var(--border-focus);
+  }
+  .model-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .model-search input::placeholder { color: var(--text-muted); }
+  .model-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .model-search .btn-icon { width: 20px; height: 20px; }
+
   .target-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-height: calc(100vh - 220px);
+    max-height: calc(100vh - 270px);
     overflow-y: auto;
     padding-right: 2px;
   }
@@ -1090,23 +1233,37 @@
     padding: 0.55rem;
   }
   .sidebar-prov-header {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 0.45rem;
     font-size: 0.75rem;
     font-weight: 600;
+    font-family: inherit;
     color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.45rem;
-    padding-bottom: 0.35rem;
+    padding: 0 0 0.35rem;
     border-bottom: 1px solid var(--border-subtle);
   }
+  .sidebar-prov-header:hover { color: var(--text-main); }
+  .sidebar-prov-header:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+  .sidebar-prov-header.collapsed { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+  .provider-group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .provider-model-count { color: var(--text-muted); font-size: 0.7rem; font-weight: 400; }
+  .provider-chevron { display: inline-flex; transition: transform 0.15s ease; }
+  .sidebar-prov-header.collapsed .provider-chevron { transform: rotate(-90deg); }
   .sidebar-prov-models {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
   }
+  .sidebar-prov-models[hidden] { display: none; }
 
   .target-item {
     display: flex;
@@ -1134,9 +1291,15 @@
     border-color: var(--border-focus);
   }
 
+  .frozen-indicator {
+    display: inline-flex;
+    color: var(--text-muted);
+  }
+
   .target-info {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
     overflow: hidden;
     min-width: 0;
   }
@@ -1364,6 +1527,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .freeze-button.is-frozen {
+    color: var(--color-primary-light);
+    background: var(--color-primary-subtle);
+  }
+
+  .badge-frozen {
+    color: var(--color-primary-light);
+    background: var(--color-primary-subtle);
+    border: 1px solid var(--border-color);
+  }
+
   .card-header-actions {
     display: flex;
     align-items: center;
@@ -1596,7 +1770,8 @@
     text-overflow: ellipsis;
   }
 
-  .sidebar-prov-group { background: transparent; border: 0; border-radius: 0; padding: 0; margin-bottom: 16px; }
+  .sidebar-prov-group { background: transparent; border: 0; border-radius: 0; padding: 0; }
+  .sidebar-prov-group + .sidebar-prov-group { border-top: 1px solid var(--border-subtle); padding-top: 12px; }
   .sidebar-prov-header { border: 0; padding: 0 4px 10px; letter-spacing: .06em; font-size: 10px; }
   .target-item { padding: 10px; background: transparent; }
   .target-item.checked { background: var(--bg-selected); border-color: var(--border-focus); }

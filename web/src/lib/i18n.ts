@@ -62,6 +62,10 @@ export const translations = {
 
     // Compare Page
     selectModels: 'Select Models',
+    searchModels: 'Search Models',
+    searchModelsPlaceholder: 'Search models or providers…',
+    clearModelSearch: 'Clear model search',
+    noMatchingModels: 'No models match your keywords.',
     noModelsConfigured: 'No models configured yet.',
     goToConfig: 'Go to Configuration',
     systemPrompt: 'System Prompt',
@@ -89,7 +93,7 @@ export const translations = {
     noModelsSelected: 'Please select at least one model to run.',
     selectUpTo8: 'You can select up to 8 models at once.',
     selectUpToN: 'You can select up to {n} models at once.',
-    maxTargetsTooltip: 'Up to {max} models can be compared concurrently (configurable via startup flag -max-targets)',
+    maxTargetsTooltip: 'Select up to {max} models, including frozen outputs (configurable via startup flag -max-targets).',
     unlimitedTargetsTooltip: 'No limit on concurrent models (configurable via startup flag -max-targets)',
 
     // Card Tabs & Badges
@@ -103,6 +107,12 @@ export const translations = {
     statusDone: 'Done',
     statusError: 'Error',
     statusCanceled: 'Canceled',
+    statusFrozen: 'Frozen',
+    freezeOutput: 'Freeze Output',
+    unfreezeOutput: 'Unfreeze Output',
+    freezeOutputHint: 'Keep this output and skip this model in future runs. Deselecting the model unfreezes it.',
+    unfreezeOutputHint: 'Allow this model to run again when selected.',
+    allModelsFrozen: 'All selected outputs are frozen. Select another model or unfreeze an output to run.',
     copyOutput: 'Copy Output',
     copied: 'Copied!',
     exportCurl: 'Export curl',
@@ -252,6 +262,10 @@ export const translations = {
 
     // 对比页
     selectModels: '选择模型',
+    searchModels: '搜索模型',
+    searchModelsPlaceholder: '搜索模型或服务商…',
+    clearModelSearch: '清除模型搜索',
+    noMatchingModels: '没有匹配这些关键词的模型。',
     noModelsConfigured: '暂未配置任何模型。',
     goToConfig: '前往配置',
     systemPrompt: 'System Prompt',
@@ -279,7 +293,7 @@ export const translations = {
     noModelsSelected: '请至少勾选一个模型。',
     selectUpTo8: '最多可同时选择 8 个模型。',
     selectUpToN: '最多可同时选择 {n} 个模型。',
-    maxTargetsTooltip: '最多支持并发对比 {max} 个模型（可通过启动参数 -max-targets 调整）',
+    maxTargetsTooltip: '最多勾选 {max} 个模型，包含已冻结模型（可通过启动参数 -max-targets 调整）。',
     unlimitedTargetsTooltip: '未限制并发对比模型数（可通过启动参数 -max-targets 调整）',
 
     // 卡片 Tabs & 徽标
@@ -293,6 +307,12 @@ export const translations = {
     statusDone: '已完成',
     statusError: '出错',
     statusCanceled: '已取消',
+    statusFrozen: '已冻结',
+    freezeOutput: '冻结输出',
+    unfreezeOutput: '取消冻结',
+    freezeOutputHint: '保留此输出，后续发送不再调用该模型；取消勾选会解除冻结。',
+    unfreezeOutputHint: '取消冻结后，勾选该模型即可再次调用。',
+    allModelsFrozen: '所选模型的输出均已冻结，请选择其他模型或取消冻结后再发送。',
     copyOutput: '复制输出',
     copied: '已复制！',
     exportCurl: '导出 curl',
