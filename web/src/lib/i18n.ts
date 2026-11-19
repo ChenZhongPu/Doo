@@ -116,7 +116,11 @@ export const translations = {
     copyOutput: 'Copy Output',
     copied: 'Copied!',
     exportCurl: 'Export curl',
-    exportPython: 'Export Python',
+    exportPython: 'Export Python (HTTPX)',
+    exportPythonSdk: 'Export Python (SDK)',
+    exportTabCurl: 'cURL',
+    exportTabPythonSdk: 'Python (SDK)',
+    exportTabPythonHttpx: 'Python (HTTPX)',
     close: 'Close',
 
     // Metrics
@@ -316,7 +320,11 @@ export const translations = {
     copyOutput: '复制输出',
     copied: '已复制！',
     exportCurl: '导出 curl',
-    exportPython: '导出 Python',
+    exportPython: '导出 Python (HTTPX)',
+    exportPythonSdk: '导出 Python (SDK)',
+    exportTabCurl: 'cURL',
+    exportTabPythonSdk: 'Python (SDK)',
+    exportTabPythonHttpx: 'Python (HTTPX)',
     close: '关闭',
 
     // 指标

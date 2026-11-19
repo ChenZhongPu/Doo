@@ -34,10 +34,12 @@ func (s *Server) handleExportCall(w http.ResponseWriter, r *http.Request) {
 	switch format {
 	case "curl":
 		output, err = export.ToCurl(call.TargetSnapshotJSON, call.RequestJSON)
-	case "python":
+	case "python", "httpx", "python-httpx":
 		output, err = export.ToPython(call.TargetSnapshotJSON, call.RequestJSON)
+	case "python-sdk", "sdk":
+		output, err = export.ToPythonSDK(call.TargetSnapshotJSON, call.RequestJSON)
 	default:
-		writeError(w, http.StatusBadRequest, "format must be curl or python")
+		writeError(w, http.StatusBadRequest, "format must be curl, python, or python-sdk")
 		return
 	}
 

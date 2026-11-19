@@ -96,9 +96,12 @@
   let previewModalOpen: boolean = $state(false);
   let previewData: { targetLabel: string; body: string; headers: Record<string, string> }[] = $state([]);
   let exportModalOpen: boolean = $state(false);
+  let exportCallId: number | null = $state(null);
+  let exportFormat: 'curl' | 'python' | 'python-sdk' = $state('python-sdk');
   let exportCode: string = $state('');
-  let exportTitle: string = $state('');
   let exportCopied: boolean = $state(false);
+  let exportLoading: boolean = $state(false);
+  let exportCache: Record<string, string> = $state({});
 
   // RAF batch rendering
   let animFrameId: number | null = null;
@@ -545,14 +548,38 @@
     }
   }
 
-  async function openExport(callId: number, format: 'curl' | 'python') {
+  async function openExport(callId: number, format: 'curl' | 'python' | 'python-sdk') {
+    exportCallId = callId;
+    exportFormat = format;
+    exportCache = {};
+    exportCopied = false;
+    exportModalOpen = true;
+    await loadExportCode(callId, format);
+  }
+
+  async function switchExportFormat(format: 'curl' | 'python' | 'python-sdk') {
+    if (exportFormat === format || !exportCallId) return;
+    exportFormat = format;
+    exportCopied = false;
+    await loadExportCode(exportCallId, format);
+  }
+
+  async function loadExportCode(callId: number, format: 'curl' | 'python' | 'python-sdk') {
+    if (exportCache[format]) {
+      exportCode = exportCache[format];
+      return;
+    }
+    exportLoading = true;
     try {
-      exportTitle = format === 'curl' ? $t('exportCurl') : $t('exportPython');
-      exportCode = await api.exportCall(callId, format);
-      exportCopied = false;
-      exportModalOpen = true;
+      const code = await api.exportCall(callId, format);
+      exportCache[format] = code;
+      if (exportCallId === callId && exportFormat === format) {
+        exportCode = code;
+      }
     } catch (e: any) {
       notify(e.message || $t('errorOccurred'), $t('exportFailed'));
+    } finally {
+      exportLoading = false;
     }
   }
 
@@ -1038,6 +1065,13 @@
                 <button
                   type="button"
                   class="btn-footer"
+                  onclick={() => openExport(state.callId!, 'python-sdk')}
+                >
+                  <PythonLogo /> {$t('exportPythonSdk')}
+                </button>
+                <button
+                  type="button"
+                  class="btn-footer"
                   onclick={() => openExport(state.callId!, 'python')}
                 >
                   <PythonLogo /> {$t('exportPython')}
@@ -1082,11 +1116,41 @@
   <div class="modal-backdrop" role="presentation" onclick={e => { if (e.target === e.currentTarget) exportModalOpen = false; }}>
     <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" onkeydown={e => { if (e.key === 'Escape') exportModalOpen = false; }}>
       <div class="modal-header">
-        <h3>{exportTitle}</h3>
+        <h3>{$t('exportModalTitle')}</h3>
         <button class="btn-icon" onclick={() => exportModalOpen = false} aria-label={$t('close')}><Icon name="close" size={14} /></button>
       </div>
+      <div class="modal-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          class:active={exportFormat === 'curl'}
+          onclick={() => switchExportFormat('curl')}
+        >
+          <Icon name="connection" size={13} /> {$t('exportTabCurl')}
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          class:active={exportFormat === 'python-sdk'}
+          onclick={() => switchExportFormat('python-sdk')}
+        >
+          <PythonLogo /> {$t('exportTabPythonSdk')}
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          class:active={exportFormat === 'python'}
+          onclick={() => switchExportFormat('python')}
+        >
+          <PythonLogo /> {$t('exportTabPythonHttpx')}
+        </button>
+      </div>
       <div class="modal-body">
-        <pre class="code-preview export-code">{exportCode}</pre>
+        {#if exportLoading && !exportCode}
+          <div class="export-loading">{$t('loading')}</div>
+        {:else}
+          <pre class="code-preview export-code"><CodeHighlight text={exportCode} language={exportFormat === 'curl' ? 'bash' : 'python'} /></pre>
+        {/if}
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick={copyExportCode}>
@@ -1661,6 +1725,7 @@
 
   .card-footer {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     padding: 10px 16px;
     border-top: 1px solid var(--border-color);
@@ -1718,6 +1783,21 @@
     font-size: 1.05rem;
     font-weight: 600;
     color: var(--text-main);
+  }
+  .modal-tabs {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 1.25rem;
+    background: var(--bg-card-tabs);
+    border-bottom: 1px solid var(--border-color);
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .export-loading {
+    padding: 2.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
   }
   .modal-body {
     padding: 1.35rem;

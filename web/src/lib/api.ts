@@ -93,7 +93,7 @@ export const api = {
 
   // Calls
   getCallRaw: (callId: number) => fetchJSON<CallRaw>(`/api/calls/${callId}/raw`),
-  exportCall: async (callId: number, format: 'curl' | 'python') => {
+  exportCall: async (callId: number, format: 'curl' | 'python' | 'python-sdk') => {
     const res = await fetch(`/api/calls/${callId}/export?format=${format}`);
     if (!res.ok) {
       throw new Error(`Export failed: ${res.status}`);

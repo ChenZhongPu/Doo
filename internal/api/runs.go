@@ -137,7 +137,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 				Protocol:    p.Protocol,
 				BaseURL:     p.BaseURL,
 				APIKeyRef:   secrets.MaskRef(p.APIKeyRef),
-				Headers:     headers,
+				Headers:     secrets.MaskHeaders(p.Headers),
 				StreamUsage: p.StreamUsage,
 			},
 			Target: t,

@@ -336,6 +336,28 @@ func TestAPI_Runs_SSEStreamAndExport(t *testing.T) {
 	if strings.Contains(exportW.Body.String(), "stream_options") {
 		t.Fatal("export includes automatic stream_options")
 	}
+
+	// Test GET /api/calls/{id}/export?format=python-sdk
+	exportSdkReq := httptest.NewRequest("GET", fmt.Sprintf("/api/calls/%d/export?format=python-sdk", callID), nil)
+	exportSdkReq.Host = "127.0.0.1:8787"
+	exportSdkW := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(exportSdkW, exportSdkReq)
+
+	if exportSdkW.Code != http.StatusOK {
+		t.Fatalf("expected 200 for export python-sdk, got %d: %s", exportSdkW.Code, exportSdkW.Body.String())
+	}
+	if !strings.Contains(exportSdkW.Body.String(), "from openai import OpenAI") {
+		t.Errorf("python-sdk export mismatch: %s", exportSdkW.Body.String())
+	}
+
+	// Test GET /api/calls/{id}/export?format=invalid
+	exportBadReq := httptest.NewRequest("GET", fmt.Sprintf("/api/calls/%d/export?format=invalid", callID), nil)
+	exportBadReq.Host = "127.0.0.1:8787"
+	exportBadW := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(exportBadW, exportBadReq)
+	if exportBadW.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for bad format, got %d", exportBadW.Code)
+	}
 }
 
 func parseSSEEvents(raw string) []map[string]any {
